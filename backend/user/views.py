@@ -4,6 +4,7 @@ from rest_framework import status
 from datetime import date
 from .models import CustomUser
 
+
 @api_view(['POST'])
 def create_user_view(request):
     data = request.data
@@ -63,7 +64,10 @@ def create_user_view(request):
         type=type_,
         birth=birth_date,
         phone=phone,
-        crp=crp
+        crp=crp,
     )
 
-    return Response({'message': 'Usuário criado com sucesso!'}, status=status.HTTP_201_CREATED)
+    return Response(
+        {'message': 'Usuário criado com sucesso!'},
+        status=status.HTTP_201_CREATED,
+    )
