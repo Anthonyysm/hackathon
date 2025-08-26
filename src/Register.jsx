@@ -40,25 +40,28 @@ const Register = () => {
     }
     setIsLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      await updateProfile(cred.user, { displayName: formData.name });
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        uid: cred.user.uid,
-        email: cred.user.email,
-        displayName: formData.name,
-        birthDate: formData.birthDate || '',
-        phone: formData.phone || '',
-        role,
-        crp: formData.crp || '',
-        specialty: formData.specialty || '',
-        yearsExperience: formData.yearsExperience || '',
-        acceptsOnline: !!formData.acceptsOnline,
-        bio: formData.bio || '',
-        provider: 'password',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      navigate('/connected');
+      const response = await fetch(
+        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDkPhYGNEdBtRdEeWwHCWfCFtLWqmGBTO8',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            returnSecureToken: true,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Erro ao registrar');
+      }
+
+      // Opcional: Salvar dados adicionais no Firestore, se necessário
+      // Exemplo: await setDoc(doc(db, 'users', data.localId), { ... });
+
+      alert('Conta criada com sucesso!');
+      window.location.hash = '#/login';
     } catch (error) {
       console.error('Erro ao registrar:', error);
       alert(error.message);

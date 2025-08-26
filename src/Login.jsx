@@ -28,7 +28,7 @@ const Login = () => {
     try {
       const token = await user.getIdToken();
 
-      const response = await fetch('http://localhost:8000/api/login/', {
+      const response = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDkPhYGNEdBtRdEeWwHCWfCFtLWqmGBTO8', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
