@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 
+
 class Post(models.Model):
     MOOD_CHOICES = [
         ('alegre', 'Alegre'),
@@ -19,7 +20,7 @@ class Post(models.Model):
         ('medo', 'Medo'),
         ('angustia', 'Angustia'),
         ('neutro', 'Neutro'),
-        ('segurança','Segurança'),
+        ('segurança', 'Segurança'),
         ('insegurança', 'Insegurança'),
     ]
 
@@ -31,7 +32,9 @@ class Post(models.Model):
         ('saudade', 'Saudade'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
     mood = models.CharField(max_length=20, choices=MOOD_CHOICES)
     feeling = models.CharField(max_length=20, choices=FEELING_CHOICES)
     motive = models.CharField(max_length=20, choices=MOTIVE_CHOICES)
