@@ -6,3 +6,5 @@ urlpatterns = [
     path('update/<int:user_id>/', update_user_view, name='user-update'),
     path('delete/<int:user_id>/', delete_user_view, name='user-delete'),
 ]
+
+
