@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Heart, Users, Target, Sparkles, Brain, MessageCircle, Shield, Mail, Phone, MapPin, Instagram, Facebook, Twitter, Linkedin } from 'lucide-react';
-import Navbar from './components/NavBar';
+import { Heart, Users, Target, Sparkles, Brain, MessageCircle, Shield, Mail, Phone, MapPin, Instagram, Facebook, Twitter, Linkedin, LogOut, User } from 'lucide-react';
+import Navbar from './Components/Navbar';
 import HeroSection from './Components/HeroSection';
 import FeatureCard from './Components/FeatureCard';
 import CommunityCard from './Components/CommunityCard';
 import TestimonialCard from './Components/TestimonialCard';
 import Footer from './Components/Footer'; 
 import LightRays from './Components/LightRays';
+import { auth } from './firebase';
 
 // Hook otimizado para detectar elementos em view
 const useInView = (threshold = 0.1) => {
@@ -37,6 +38,7 @@ function App() {
   const [servicesRef, servicesInView] = useInView(0.2);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const testimonialInterval = useRef(null);
+  const [user, setUser] = useState(null);
 
   // Dados memoizados para evitar recriações
   const testimonials = useMemo(() => [
@@ -122,6 +124,15 @@ function App() {
       }
     };
   }, [handleScroll, testimonials.length]);
+
+  // Monitorar estado de autenticação
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
@@ -295,47 +306,91 @@ function App() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
-              Vamos Conversar
+              {user ? 'Sua Conta' : 'Vamos Conversar'}
             </h2>
             <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
-              Entre em contato e vamos conversar sobre como o Sereno pode ajudar você ou sua organização.
+              {user 
+                ? 'Gerencie sua conta e continue sua jornada de saúde mental.'
+                : 'Entre em contato e vamos conversar sobre como o Sereno pode ajudar você ou sua organização.'
+              }
             </p>
           </div>
 
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
-              <h3 className="text-2xl font-light mb-6 text-white text-center">Acesse sua Conta</h3>
-              
-              {/* Botão de Login */}
-              <div className="space-y-4">
-                <button 
-                  className="w-full bg-white text-black py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/90 text-base tracking-wide backdrop-blur-md"
-                  onClick={() => { window.location.hash = '#/login'; }}
-                >
-                  Fazer Login
-                </button>
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10"></div>
+            {user ? (
+              // Interface para usuário logado
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <User className="w-8 h-8 text-white" />
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-black text-white/50 font-light">ou</span>
-                  </div>
+                  <h3 className="text-2xl font-light text-white mb-2">Bem-vindo de volta!</h3>
+                  <p className="text-white/70 text-sm">{user.displayName || user.email}</p>
                 </div>
                 
-                <button 
-                  className="w-full bg-transparent border border-white/30 text-white py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/5 text-base tracking-wide backdrop-blur-md"
-                  onClick={() => { window.location.hash = '#/register'; }}
-                >
-                  Criar Conta
-                </button>
+                <div className="space-y-4">
+                  <button 
+                    className="w-full bg-white text-black py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/90 text-base tracking-wide backdrop-blur-md"
+                    onClick={() => { 
+                      // Aqui você pode adicionar navegação para o dashboard do usuário
+                      console.log('Ir para dashboard do usuário');
+                    }}
+                  >
+                    Acessar Dashboard
+                  </button>
+                  
+                  <button 
+                    className="w-full bg-transparent border border-white/30 text-white py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/5 text-base tracking-wide backdrop-blur-md flex items-center justify-center"
+                    onClick={() => { 
+                      auth.signOut();
+                      window.location.hash = '#/';
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sair
+                  </button>
+                </div>
+                
+                <p className="text-white/50 text-sm text-center mt-6 font-light">
+                  Continue sua jornada de saúde mental
+                </p>
               </div>
-              
-              <p className="text-white/50 text-sm text-center mt-6 font-light">
-                Comece sua jornada de saúde mental hoje mesmo
-              </p>
-            </div>
+            ) : (
+              // Interface para usuário não logado
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
+                <h3 className="text-2xl font-light mb-6 text-white text-center">Acesse sua Conta</h3>
+                
+                {/* Botão de Login */}
+                <div className="space-y-4">
+                  <button 
+                    className="w-full bg-white text-black py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/90 text-base tracking-wide backdrop-blur-md"
+                    onClick={() => { window.location.hash = '#/login'; }}
+                  >
+                    Fazer Login
+                  </button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-white/10"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-4 bg-black text-white/50 font-light">ou</span>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    className="w-full bg-transparent border border-white/30 text-white py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/5 text-base tracking-wide backdrop-blur-md"
+                    onClick={() => { window.location.hash = '#/register'; }}
+                  >
+                    Criar Conta
+                  </button>
+                </div>
+                
+                <p className="text-white/50 text-sm text-center mt-6 font-light">
+                  Comece sua jornada de saúde mental hoje mesmo
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>

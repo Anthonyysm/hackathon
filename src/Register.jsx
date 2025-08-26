@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { auth, db } from './firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, Phone, Calendar } from 'lucide-react';
 import LightRays from './Components/LightRays';
 
 const Register = () => {
@@ -10,6 +10,8 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    birthDate: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     // Campos do psicólogo
@@ -42,6 +44,8 @@ const Register = () => {
         uid: cred.user.uid,
         email: cred.user.email,
         displayName: formData.name,
+        birthDate: formData.birthDate || '',
+        phone: formData.phone || '',
         role,
         crp: formData.crp || '',
         specialty: formData.specialty || '',
@@ -151,6 +155,39 @@ const Register = () => {
                   onChange={handleInputChange}
                   className="w-full pl-9 pr-4 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-200 text-sm"
                   placeholder="seu@email.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="birthDate" className="block text-xs font-light text-white/80">Data de Nascimento</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                <input
+                  type="date"
+                  id="birthDate"
+                  name="birthDate"
+                  value={formData.birthDate}
+                  onChange={handleInputChange}
+                  className="w-full pl-9 pr-4 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-200 text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="phone" className="block text-xs font-light text-white/80">Telefone</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full pl-9 pr-4 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-200 text-sm"
+                  placeholder="(11) 99999-9999"
                   required
                 />
               </div>

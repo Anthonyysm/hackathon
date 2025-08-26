@@ -102,7 +102,11 @@ const Login = () => {
         await signInWithRedirect(auth, googleProvider);
         return; // fluxo continua no getRedirectResult
       }
+      
+      // Verificar se o usuário já tem dados completos
       const userRef = doc(db, 'users', cred.user.uid);
+      const userSnap = await getDoc(userRef);
+      
       await setDoc(userRef, {
         uid: cred.user.uid,
         email: cred.user.email,
@@ -113,6 +117,20 @@ const Login = () => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }, { merge: true });
+
+      // Se o usuário não tem telefone ou data de nascimento, redirecionar para completar perfil
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (!userData.phone || !userData.birthDate) {
+          window.location.hash = '#/complete-profile';
+          return;
+        }
+      } else {
+        // Usuário novo, redirecionar para completar perfil
+        window.location.hash = '#/complete-profile';
+        return;
+      }
+      
       window.location.hash = '#/connected';
     } catch (error) {
       console.error('Erro ao entrar com Google:', error);
@@ -129,7 +147,11 @@ const Login = () => {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
           await sendToken(result.user);
+          
+          // Verificar se o usuário já tem dados completos
           const userRef = doc(db, 'users', result.user.uid);
+          const userSnap = await getDoc(userRef);
+          
           await setDoc(userRef, {
             uid: result.user.uid,
             email: result.user.email,
@@ -140,6 +162,20 @@ const Login = () => {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           }, { merge: true });
+
+          // Se o usuário não tem telefone ou data de nascimento, redirecionar para completar perfil
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            if (!userData.phone || !userData.birthDate) {
+              window.location.hash = '#/complete-profile';
+              return;
+            }
+          } else {
+            // Usuário novo, redirecionar para completar perfil
+            window.location.hash = '#/complete-profile';
+            return;
+          }
+          
           window.location.hash = '#/connected';
         }
       } catch (e) {
