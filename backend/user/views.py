@@ -40,8 +40,8 @@ def create_user_view(request):
         if birth_date.year < today.year - 120:
             errors.append('A data de nascimento é muito antiga.')
 
-        if age < 18:
-            errors.append('Você precisa ter pelo menos 18 anos.')
+        if age < 10:
+            errors.append('Você precisa ter pelo menos 10 anos.')
 
     except (ValueError, TypeError):
         errors.append('Formato de data de nascimento inválido.')
