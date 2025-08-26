@@ -23,8 +23,6 @@ const Footer = () => {
             <a href="#" className="text-white/50 hover:text-white transition-all duration-300 text-sm font-light tracking-wide">Termos de Uso</a>
             <a href="#" className="text-white/50 hover:text-white transition-all duration-300 text-sm font-light tracking-wide">Política de Privacidade</a>
             <a href="#" className="text-white/50 hover:text-white transition-all duration-300 text-sm font-light tracking-wide">Cookies</a>
-            <button onClick={() => { window.location.hash = '#/login'; }} className="text-white/70 hover:text-white transition-all duration-300 text-sm font-light tracking-wide">Login</button>
-            <button onClick={() => { window.location.hash = '#/register'; }} className="text-white/70 hover:text-white transition-all duration-300 text-sm font-light tracking-wide">Criar Conta</button>
           </div>
           
           <p className="text-white/50 text-sm font-light tracking-wide">© {new Date().getFullYear()} Sereno. Todos os direitos reservados.</p>
