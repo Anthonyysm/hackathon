@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, Sparkles } from 'lucide-react';
+import { auth, googleProvider, db } from './firebase';
+import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowLeft } from 'lucide-react';
 import LightRays from './Components/LightRays';
 
 const Login = () => {
@@ -17,13 +20,69 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const cred = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      const userRef = doc(db, 'users', cred.user.uid);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          uid: cred.user.uid,
+          email: cred.user.email,
+          displayName: cred.user.displayName || '',
+          provider: 'password',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(userRef, { updatedAt: serverTimestamp() }, { merge: true });
+      }
+      window.location.hash = '#/connected';
+    } catch (error) {
+      console.error('Erro ao entrar:', error);
+      alert(error.message);
+    } finally {
       setIsLoading(false);
-      console.log('Login attempt:', formData);
-    }, 2000);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setIsLoading(true);
+    try {
+      const cred = await signInWithPopup(auth, googleProvider);
+      const userRef = doc(db, 'users', cred.user.uid);
+      await setDoc(userRef, {
+        uid: cred.user.uid,
+        email: cred.user.email,
+        displayName: cred.user.displayName || '',
+        photoURL: cred.user.photoURL || '',
+        provider: 'google',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      window.location.hash = '#/connected';
+    } catch (error) {
+      console.error('Erro ao entrar com Google:', error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!formData.email) {
+      alert('Digite seu e-mail para receber o link.');
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      alert('Email de redefinição enviado. Verifique sua caixa de entrada.');
+    } catch (error) {
+      console.error('Erro ao enviar e-mail de redefinição:', error);
+      alert(error.message);
+    }
   };
 
   return (
@@ -32,6 +91,14 @@ const Login = () => {
 
       {/* Login Container */}
       <div className="relative w-full max-w-md z-10">
+        <button
+          type="button"
+          onClick={() => { window.location.hash = '#/'; }}
+          className="absolute -top-2 -left-2 p-2 text-white/80 hover:text-white transition-colors"
+          aria-label="Voltar para início"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
@@ -114,6 +181,7 @@ const Login = () => {
               </label>
               <button
                 type="button"
+                onClick={handleReset}
                 className="text-sm text-white/80 hover:text-white transition-colors"
               >
                 Esqueceu a senha?
@@ -148,8 +216,8 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center py-2 px-4 border border-white/20 rounded-xl text-white/80 hover:text-white hover:border-white/30 transition-all duration-200">
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <button onClick={handleGoogle} type="button" className="flex items-center justify-center py-2 px-4 border border-white/20 rounded-xl text-white/80 hover:text-white hover:border-white/30 transition-all duration-200">
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.37c-.23 1.22-.93 2.25-1.98 2.94v2.45h3.2c1.87-1.72 2.97-4.25 2.97-7.4z" fill="#4285F4"/>
                   <path d="M12 23c2.7 0 4.96-.9 6.62-2.45l-3.2-2.45c-.9.6-2.06.96-3.42.96-2.63 0-4.85-1.77-5.64-4.15H3.01v2.6C4.65 20.98 8.06 23 12 23z" fill="#34A853"/>
@@ -157,12 +225,6 @@ const Login = () => {
                   <path d="M12 5.27c1.47 0 2.8.51 3.84 1.5l2.88-2.88C16.94 2.23 14.7 1.32 12 1.32 8.06 1.32 4.65 3.34 3.01 6.09l3.35 2.6C7.15 7.31 9.37 5.27 12 5.27z" fill="#EA4335"/>
                 </svg>
                 Google
-              </button>
-              <button className="flex items-center justify-center py-2 px-4 border border-white/20 rounded-xl text-white/80 hover:text-white hover:border-white/30 transition-all duration-200">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                Facebook
               </button>
             </div>
           </div>

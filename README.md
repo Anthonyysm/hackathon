@@ -189,6 +189,21 @@ npm run preview
 - **OGL** para WebGL (plasma)
 - **Lucide React** para ícones
 
+## 🔐 Configuração do Firebase
+
+Crie um arquivo `.env.local` na raiz do projeto com as credenciais do seu projeto Firebase:
+
+```
+VITE_FIREBASE_API_KEY=seu_api_key
+VITE_FIREBASE_AUTH_DOMAIN=seu_auth_domain
+VITE_FIREBASE_PROJECT_ID=seu_project_id
+VITE_FIREBASE_STORAGE_BUCKET=seu_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=seu_sender_id
+VITE_FIREBASE_APP_ID=seu_app_id
+```
+
+Depois execute `npm run dev` e use as telas de Login e Cadastro.
+
 ## 🎯 Objetivos do Projeto
 
 - **Democratizar** o acesso a profissionais da saúde mental

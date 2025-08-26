@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import Login from './Login.jsx';
 import Register from './Register.jsx';
+import Connected from './Connected.jsx';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -16,6 +17,8 @@ function resolveRoute(hash) {
     case '#/register':
     case '#/auth/register':
       return 'register';
+    case '#/connected':
+      return 'connected';
     default:
       return 'home';
   }
@@ -27,7 +30,7 @@ function renderByRoute() {
   const route = resolveRoute(hash);
   root.render(
     <StrictMode>
-      {route === 'login' ? <Login /> : route === 'register' ? <Register /> : <App />}
+      {route === 'login' ? <Login /> : route === 'register' ? <Register /> : route === 'connected' ? <Connected /> : <App />}
     </StrictMode>
   );
 }

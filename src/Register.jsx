@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { auth, db } from './firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react';
 import LightRays from './Components/LightRays';
 
 const Register = () => {
@@ -25,13 +28,37 @@ const Register = () => {
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      alert('As senhas não coincidem');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      await updateProfile(cred.user, { displayName: formData.name });
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        uid: cred.user.uid,
+        email: cred.user.email,
+        displayName: formData.name,
+        role,
+        crp: formData.crp || '',
+        specialty: formData.specialty || '',
+        yearsExperience: formData.yearsExperience || '',
+        acceptsOnline: !!formData.acceptsOnline,
+        bio: formData.bio || '',
+        provider: 'password',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      window.location.hash = '#/connected';
+    } catch (error) {
+      console.error('Erro ao registrar:', error);
+      alert(error.message);
+    } finally {
       setIsLoading(false);
-      console.log('Register attempt:', { role, ...formData });
-    }, 2000);
+    }
   };
 
   return (
@@ -39,6 +66,14 @@ const Register = () => {
       <LightRays />
 
       <div className="relative w-full max-w-md z-10">
+        <button
+          type="button"
+          onClick={() => { window.location.hash = '#/'; }}
+          className="absolute -top-2 -left-2 p-2 text-white/80 hover:text-white transition-colors"
+          aria-label="Voltar para início"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-md">
