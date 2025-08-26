@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Phone, Calendar, ArrowLeft, User } from 'lucide-react';
@@ -12,6 +13,7 @@ const CompleteProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -28,18 +30,18 @@ const CompleteProfile = () => {
           
                      // Se já tem telefone e data de nascimento, redirecionar
            if (data.phone && data.birthDate) {
-             window.location.hash = '#/connected';
+             navigate('/connected');
              return;
            }
         }
       } else {
         // Se não há usuário logado, redirecionar para login
-        window.location.hash = '#/login';
+        navigate('/login');
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -64,7 +66,7 @@ const CompleteProfile = () => {
         updatedAt: serverTimestamp(),
       }, { merge: true });
 
-             window.location.hash = '#/connected';
+      navigate('/connected');
     } catch (error) {
       console.error('Erro ao salvar dados:', error);
       alert('Erro ao salvar os dados. Tente novamente.');
@@ -88,9 +90,9 @@ const CompleteProfile = () => {
       <div className="relative w-full max-w-md z-10">
         <button
           type="button"
-          onClick={() => { 
+          onClick={() => {
             auth.signOut();
-            window.location.hash = '#/login'; 
+            navigate('/login'); 
           }}
           className="absolute -top-2 -left-2 p-2 text-white/80 hover:text-white transition-colors"
           aria-label="Sair e voltar para login"

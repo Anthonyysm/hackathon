@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -14,6 +15,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userType, setUserType] = useState('user'); // 'user' or 'psychologist'
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     setFormData({
@@ -81,7 +83,7 @@ const Login = () => {
           userType: userType 
         }, { merge: true });
       }
-      window.location.hash = '#/connected';
+      navigate('/connected');
     } catch (error) {
       console.error('Erro ao entrar:', error);
       alert(error.message);
@@ -122,16 +124,16 @@ const Login = () => {
       if (userSnap.exists()) {
         const userData = userSnap.data();
         if (!userData.phone || !userData.birthDate) {
-          window.location.hash = '#/complete-profile';
+          navigate('/complete-profile');
           return;
         }
       } else {
         // Usuário novo, redirecionar para completar perfil
-        window.location.hash = '#/complete-profile';
+        navigate('/complete-profile');
         return;
       }
       
-      window.location.hash = '#/connected';
+      navigate('/connected');
     } catch (error) {
       console.error('Erro ao entrar com Google:', error);
       alert(error.message);
@@ -167,16 +169,16 @@ const Login = () => {
           if (userSnap.exists()) {
             const userData = userSnap.data();
             if (!userData.phone || !userData.birthDate) {
-              window.location.hash = '#/complete-profile';
+              navigate('/complete-profile');
               return;
             }
           } else {
             // Usuário novo, redirecionar para completar perfil
-            window.location.hash = '#/complete-profile';
+            navigate('/complete-profile');
             return;
           }
           
-          window.location.hash = '#/connected';
+          navigate('/connected');
         }
       } catch (e) {
         // ignora se não houver redirect result
@@ -206,7 +208,7 @@ const Login = () => {
       <div className="relative w-full max-w-md z-10">
         <button
           type="button"
-          onClick={() => { window.location.hash = '#/'; }}
+          onClick={() => { navigate('/'); }}
           className="absolute -top-2 -left-2 p-2 text-white/80 hover:text-white transition-colors"
           aria-label="Voltar para início"
         >

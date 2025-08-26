@@ -1,33 +1,187 @@
-import React from 'react';
-import { Search, Home, MessageCircle, Users, Calendar, BarChart3, Settings, Flower } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Search, Home, MessageCircle, Users, Calendar, BarChart3, Settings, Flower, Menu, X, LogOut, User as UserIcon, Bell, Compass } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
 
-const Header = ({ activeTab, onTabChange }) => {
+const Header = ({ activeTab, setActiveTab }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen(prev => !prev);
+    setIsDropdownOpen(false);
+  }, []);
+
+  const toggleDropdown = useCallback(() => {
+    setIsDropdownOpen(prev => !prev);
+    setIsMenuOpen(false);
+  }, []);
+
+  const navItems = useMemo(() => [
+    { name: 'Início', tab: 'home', icon: Home },
+    { name: 'Sessões', tab: 'sessions', icon: Users },
+    { name: 'Chat', tab: 'chat', icon: MessageCircle },
+    { name: 'Notificações', tab: 'notifications', icon: Bell },
+  ], []);
+
+  const handleNavClick = useCallback((tabName) => {
+    setActiveTab(tabName);
+    setIsMenuOpen(false);
+    setIsDropdownOpen(false);
+  }, [setActiveTab]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await auth.signOut();
+      navigate('/login');
+      setIsDropdownOpen(false);
+    } catch (error) {
+      console.error('Erro ao sair:', error);
+      alert('Erro ao sair. Tente novamente.');
+    }
+  }, [navigate]);
+
   return (
-    <header className="bg-black/95 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
+    <header className="bg-black/95 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Left Section: Mobile Menu Button, Logo and Search Bar */}
           <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-white rounded-xl shadow-lg">
-              <Flower className="w-5 h-5 text-black" />
-            </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              Sereno
-            </h1>
-          </div>
+            {/* Mobile Menu Button */}
+            <button
+              className="lg:hidden text-white hover:bg-white/10 p-2 rounded-xl transition-all duration-300 backdrop-blur-md"
+              onClick={toggleMenu}
+              aria-label="Abrir menu"
+            >
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            {/* Logo */}
+            <button onClick={() => setActiveTab('home')} className="flex items-center space-x-2 group">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 overflow-hidden bg-white/10 border border-white/20 backdrop-blur-md group-hover:bg-white/15 group-hover:border-white/30 group-hover:shadow-lg group-hover:shadow-white/10">
+              <img 
+                src="/Logo-Sereno3.png" 
+                alt="Sereno Logo" 
+                className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300"
+                loading="eager"
+              />
+              </div>
+              <span className="text-xl font-bold text-white tracking-wide group-hover:text-white/90 transition-colors ">
+                Sereno
+              </span>
+            </button>
+            
+            {/* Search Bar - Visible on desktop, takes up central space */}
+            <div className="relative hidden sm:block flex-1 max-w-xl ml-6">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Pesquisar posts, grupos, pessoas..."
-                className="w-full bg-gray-900/50 border border-gray-700 rounded-full py-3 pl-12 pr-6 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all duration-200"
+                className="w-full bg-black/50 border border-s-white rounded-full py-2 pl-12 pr-6 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all duration-200 text-sm"
               />
             </div>
           </div>
+
+          {/* Right Section: Desktop Navigation Icons and User/Logout */}
+          <div className="flex items-center space-x-4">
+            {/* Desktop Navigation Icons (only icons as per image) */}
+            <div className="hidden lg:flex items-center space-x-5">
+              {navItems.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavClick(item.tab)}
+                  className={`relative text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full ${activeTab === item.tab ? 'bg-white/20' : 'hover:bg-white/10'}`}
+                >
+                  <item.icon className="w-5 h-5" />
+                </button>
+              ))}
+            </div>
+
+            {/* User Profile and Logout */}
+            {user ? (
+              <div className="relative">
+                <button 
+                  className="flex items-center space-x-2 text-white/70 hover:text-white transition-colors"
+                  onClick={toggleDropdown}
+                >
+                  <UserIcon className="w-5 h-5" />
+                  <span className="hidden md:block text-sm font-light">{user.displayName || 'Usuário'}</span>
+                </button>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-black/90 border border-white/10 rounded-md shadow-lg py-1 z-60">
+                    <button 
+                      onClick={() => handleNavClick('settings')} 
+                      className="flex items-center w-full px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Configurações
+                    </button>
+                    <button 
+                      onClick={handleLogout} 
+                      className="flex items-center w-full px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sair
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button 
+                onClick={() => navigate('/login')}
+                className="bg-white text-black px-4 py-2 rounded-xl text-sm font-light hover:bg-white/90 transition-all duration-200"
+              >
+                Login
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMenuOpen && (
+          <div className="lg:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40" onClick={toggleMenu}></div>
+        )}
+        {isMenuOpen && (
+          <div className="lg:hidden fixed top-0 left-0 h-full w-64 bg-black/95 border-r border-white/10 p-4 pt-16 z-50 transform transition-transform duration-300 ease-in-out">
+            <div className="flex flex-col space-y-4">
+              {navItems.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavClick(item.tab)}
+                  className={`text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3 ${activeTab === item.tab ? 'text-white' : ''}`}
+                >
+                  <item.icon className="w-6 h-6" />
+                  <span>{item.name}</span>
+                </button>
+              ))}
+              {user ? (
+                <button 
+                  onClick={handleLogout} 
+                  className="flex items-center mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Sair
+                </button>
+              ) : (
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="mt-4 px-4 py-2 bg-white text-black rounded-md hover:bg-white/90 transition-all duration-200"
+                >
+                  Login
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

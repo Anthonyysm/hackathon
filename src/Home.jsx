@@ -1,23 +1,21 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import WelcomeScreen from './components/WelcomeScreen';
 import PostCreation from './components/PostCreation';
 import SocialFeed from './components/SocialFeed';
 import SuggestedGroups from './components/SuggestedGroups';
 import MoodTracker from './components/MoodTracker';
-import TherapySessions from './components/TherapySessions';
-import InteractiveDiary from './components/InteractiveDiary';
-import HumorTracker from './components/HumorTracker';
-import LiveChat from './components/LiveChat';
-import UserOptions from './components/UserOptions';
-import Navigation from './components/Navigation';
+import TherapySessions from './components/TherapySessions'; // Re-adding import
+import InteractiveDiary from './components/InteractiveDiary'; // Re-adding import
+import HumorTracker from './components/HumorTracker'; // Re-adding import
+import LiveChat from './components/LiveChat'; // Re-adding import
+import UserOptions from './components/UserOptions'; // Re-adding import
 
-function App() {
+function Home() {
   const [activeTab, setActiveTab] = useState('home');
 
   // Debug: Log activeTab changes
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('Active Tab:', activeTab);
   }, [activeTab]);
 
@@ -39,7 +37,9 @@ function App() {
         return <HumorTracker />;
       case 'chat':
         return <LiveChat />;
-      case 'options':
+      case 'notifications': // Placeholder for notifications content
+        return <div className="text-white">Conteúdo de Notificações</div>;
+      case 'settings': // Placeholder for settings content
         return <UserOptions />;
       default:
         return (
@@ -76,20 +76,20 @@ function App() {
           </aside>
         </>
       );
+    } else {
+      return (
+        <section className="lg:col-span-12">
+          <div className="max-w-4xl mx-auto">
+            {renderMainContent()}
+          </div>
+        </section>
+      );
     }
-
-    return (
-      <section className="lg:col-span-12">
-        <div className="max-w-4xl mx-auto">
-          {renderMainContent()}
-        </div>
-      </section>
-    );
   };
 
   return (
     <div className="min-h-screen bg-black lg:pb-8 pb-20">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
       
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -97,13 +97,8 @@ function App() {
           {renderSidebar()}
         </div>
       </main>
-
-      {/* Bottom Navigation - Mobile Only */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
-        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      </div>
     </div>
   );
 }
 
-export default App;
+export default Home;

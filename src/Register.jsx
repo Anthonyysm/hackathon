@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -24,6 +25,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -56,7 +58,7 @@ const Register = () => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      window.location.hash = '#/connected';
+      navigate('/connected');
     } catch (error) {
       console.error('Erro ao registrar:', error);
       alert(error.message);

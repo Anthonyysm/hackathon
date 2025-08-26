@@ -1,48 +1,38 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 
 const Navbar = ({ scrolled, scrollToSection }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const toggleMenu = useCallback(() => {
     setIsMenuOpen(prev => !prev);
   }, []);
 
-  // Novos nomes e destinos
   const navItems = useMemo(() => [
-    { name: 'Início', id: 'home' },
-    { name: 'Recursos', id: 'services' },
-    { name: 'Comunidade', id: 'projects' },
-    { name: 'Depoimentos', id: 'testimonials' },
-    { name: 'Missão', id: 'about' }
+    { name: 'Início', path: '/' },
+    { name: 'Recursos', path: '/resources' },
+    { name: 'Comunidade', path: '/community' },
+    { name: 'Depoimentos', path: '/testimonials' },
+    { name: 'Missão', path: '/about' }
   ], []);
 
-  const handleNavClick = useCallback((sectionId) => {
-    if (sectionId === 'login') {
-      window.location.hash = '#/login';
-      setIsMenuOpen(false);
-      return;
-    }
-    if (sectionId === 'register') {
-      window.location.hash = '#/register';
-      setIsMenuOpen(false);
-      return;
-    }
-    if (sectionId === 'home') {
-      window.location.hash = '#/';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setIsMenuOpen(false);
-      return;
-    }
-    scrollToSection(sectionId);
+  const handleNavClick = useCallback((path) => {
+    navigate(path);
     setIsMenuOpen(false);
-  }, [scrollToSection]);
+  }, [navigate]);
 
   const handleLogoClick = useCallback(() => {
-    window.location.hash = '#/';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/');
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Manter o scroll para o topo na landing page
     setIsMenuOpen(false);
-  }, []);
+  }, [navigate]);
+
+  const handleContactClick = useCallback(() => {
+    scrollToSection('contact'); // Chamar scrollToSection com a ID da seção de contato
+    setIsMenuOpen(false);
+  }, [scrollToSection]);
 
   return (
     <header className="fixed top-2 md:top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-4 md:px-6">
@@ -72,7 +62,7 @@ const Navbar = ({ scrolled, scrollToSection }) => {
             {navItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => handleNavClick(item.id)}
+                onClick={() => handleNavClick(item.path)}
                 className="relative text-white/70 hover:text-white transition-all duration-300 text-sm font-light tracking-wide group"
               >
                 {item.name}
@@ -80,7 +70,7 @@ const Navbar = ({ scrolled, scrollToSection }) => {
               </button>
             ))}
             <button 
-              onClick={() => handleNavClick('contact')}
+              onClick={handleContactClick}
               className="group relative bg-white text-black px-6 py-2 rounded-xl transition-all duration-300 text-sm font-light tracking-wide transform hover:bg-white/90 backdrop-blur-md"
             >
               <span className="relative z-10">Começar Agora</span>
@@ -104,14 +94,14 @@ const Navbar = ({ scrolled, scrollToSection }) => {
               {navItems.map((item) => (
                 <button
                   key={item.name}
-                  onClick={() => handleNavClick(item.id)}
+                  onClick={() => handleNavClick(item.path)}
                   className="text-white/70 hover:text-white transition-all duration-300 py-2 text-sm text-left font-light tracking-wide"
                 >
                   {item.name}
                 </button>
               ))}
               <button 
-                onClick={() => handleNavClick('contact')}
+                onClick={handleContactClick}
                 className="bg-white text-black px-6 py-3 rounded-xl hover:bg-white/90 transition-all duration-300 w-full text-sm font-light tracking-wide mt-3 backdrop-blur-md"
               >
                 Começar Agora

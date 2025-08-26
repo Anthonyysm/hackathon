@@ -1,14 +1,17 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LightRays from './Components/LightRays';
 
 const Connected = () => {
+  const navigate = useNavigate();
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      window.location.hash = '#/'; // Redireciona para a página inicial
+      navigate('/home'); // Redireciona para a página inicial Home.jsx
     }, 3000); // Redireciona após 3 segundos
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden text-white">
