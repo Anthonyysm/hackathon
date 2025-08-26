@@ -16,10 +16,11 @@ def post_view(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    #get pata listar todos os posts, mais recente primeiro
+    # get pata listar todos os posts, mais recente primeiro
     posts = Post.objects.all().order_by('-crate_in')
     serializer = PostSerializer(posts, many=True)
     return Response(serializer.data)
+
 
 # Endpoint específico para listar apenas os posts do usuário logado
 @api_view(['GET'])
@@ -28,6 +29,7 @@ def user_posts_view(request):
     posts = Post.objects.filter(user=request.user).order_by('-create_in')
     serializer = PostSerializer(posts, many=True)
     return Response(serializer.data)
+
 
 # Futuro endpoint de filtragem por humor, sentimento ou motivo
 @api_view(['GET'])
