@@ -1,3 +1,4 @@
+from firebase_admin import auth as firebase_auth
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
@@ -72,6 +73,39 @@ def create_user_view(request):
         {'message': 'Usuário criado com sucesso!'},
         status=status.HTTP_201_CREATED,
     )
+
+
+@api_view(['POST'])
+def login_view(request):
+    # Espera o token no header Authorization: Bearer <token>
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return Response({'error': 'Token do Firebase não fornecido.'}, status=status.HTTP_401_UNAUTHORIZED)
+    firebase_token = auth_header.split(' ')[1]
+
+    try:
+        decoded_token = firebase_auth.verify_id_token(firebase_token)
+        firebase_uid = decoded_token['uid']
+        email = decoded_token.get('email')
+    except Exception:
+        return Response({'error': 'Token do Firebase inválido.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        user = CustomUser.objects.get(email=email)
+        # Aqui você pode retornar dados do usuário, permissões, etc.
+        return Response({
+            'message': 'Login realizado com sucesso!',
+            'user': {
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'username': user.username,
+                'type': user.type,
+            },
+            'firebase_token': firebase_token
+        }, status=status.HTTP_200_OK)
+    except CustomUser.DoesNotExist:
+        return Response({'error': 'Usuário não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['PUT'])
@@ -179,13 +213,3 @@ def delete_user_view(request, user_id):
             {'error': 'Usuário não encontrado.'},
             status=status.HTTP_404_NOT_FOUND,
         )
-    
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def user_profile(request):
-    return Response({
-        'user_id': request.user.id,
-        'email': request.user.email,
-        'name': request.user.first_name
-    })
