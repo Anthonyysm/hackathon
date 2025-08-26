@@ -1,10 +1,45 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.jsx';
+import Login from './Login.jsx';
+import Register from './Register.jsx';
+import './index.css';
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+const rootElement = document.getElementById('root');
+const root = rootElement ? createRoot(rootElement) : null;
+
+function resolveRoute(hash) {
+  switch (hash) {
+    case '#/login':
+    case '#/auth/login':
+      return 'login';
+    case '#/register':
+    case '#/auth/register':
+      return 'register';
+    default:
+      return 'home';
+  }
+}
+
+function renderByRoute() {
+  if (!root) return;
+  const hash = window.location.hash || '#/';
+  const route = resolveRoute(hash);
+  root.render(
+    <StrictMode>
+      {route === 'login' ? <Login /> : route === 'register' ? <Register /> : <App />}
+    </StrictMode>
+  );
+}
+
+if (root) {
+  renderByRoute();
+  window.addEventListener('hashchange', renderByRoute);
+
+  // HMR/cleanup safety
+  if (import.meta && import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      window.removeEventListener('hashchange', renderByRoute);
+    });
+  }
+}
