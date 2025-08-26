@@ -12,6 +12,7 @@ dist/
 .vite/
 dist-ssr
 *.local
+serviceAccountKey.json
 
 # Python
 __pycache__/
