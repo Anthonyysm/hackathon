@@ -1,31 +1,77 @@
-import React from 'react';
-import { Users, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Plus, Check } from 'lucide-react';
+import { auth, db } from '../firebase';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 const SuggestedGroups = () => {
+  const navigate = useNavigate();
+  const [joinedGroups, setJoinedGroups] = useState(new Set());
+
+  useEffect(() => {
+    const fetchJoined = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          const set = new Set((data.joinedGroups || []).map(String));
+          setJoinedGroups(set);
+        }
+      } catch {}
+    };
+    fetchJoined();
+  }, []);
+
+  const joinGroup = async (groupId) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (joinedGroups.has(groupId)) {
+      // Se já está no grupo, só navega para a comunidade
+      navigate(`/community/${groupId}`);
+      return;
+    }
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, { joinedGroups: arrayUnion(groupId) });
+      setJoinedGroups((prev) => new Set(prev).add(groupId));
+      // Remove o redirecionamento automático - usuário fica na página atual
+      // navigate(`/community/${groupId}`);
+    } catch (e) {
+      // Em caso de erro, ainda atualiza o estado local para feedback visual
+      setJoinedGroups((prev) => new Set(prev).add(groupId));
+      console.error('Erro ao entrar no grupo:', e);
+    }
+  };
+  
   const groups = [
     {
-      id: 1,
-      name: 'Ansiedade',
-      description: 'Apoio para quem lida com ansiedade',
+      id: 'ansiedade-estresse',
+      name: 'Ansiedade & Estresse',
+      description: 'Apoio para quem lida com ansiedade e estresse no dia a dia',
       members: 1247,
       color: 'from-blue-500 to-blue-600'
     },
     {
-      id: 2,
-      name: 'Sono',
+      id: 'sono-qualidade',
       description: 'Dicas e apoio para melhor qualidade do sono',
       members: 892,
       color: 'from-indigo-500 to-indigo-600'
     },
     {
-      id: 3,
-      name: 'Luto',
+      id: 'luto-apoio',
+      name: 'Luto & Apoio',
       description: 'Apoio em processos de luto e perda',
       members: 634,
       color: 'from-purple-500 to-purple-600'
     },
     {
-      id: 4,
+      id: 'autoconfiança',
       name: 'Autoconfiança',
       description: 'Construindo autoestima e confiança',
       members: 1156,
@@ -60,10 +106,22 @@ const SuggestedGroups = () => {
             
             <p className="text-sm text-gray-300 mb-4 leading-relaxed">{group.description}</p>
             
-            <button className="w-full bg-gradient-to-r from-white to-gray-200 text-black text-sm font-medium py-2 px-4 rounded-lg hover:from-gray-200 hover:to-gray-300 transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2">
-              <Plus className="w-4 h-4" />
-              <span>Participar</span>
-            </button>
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => navigate(`/community/${group.id}`)}
+                className="flex-1 bg-white/10 border border-white/30 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-white/20 transition-all duration-200 flex items-center justify-center space-x-2"
+              >
+                <Users className="w-4 h-4" />
+                <span>Ver Grupo</span>
+              </button>
+              <button onClick={() => joinGroup(group.id)} disabled={joinedGroups.has(group.id)} className={`text-black text-sm font-medium py-2 px-3 rounded-lg transform transition-all duration-200 ${joinedGroups.has(group.id) ? 'bg-green-300 cursor-default' : 'bg-gradient-to-r from-white to-gray-200 hover:from-gray-200 hover:to-gray-300 hover:scale-105'}`}>
+                {joinedGroups.has(group.id) ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </div>
         ))}
       </div>

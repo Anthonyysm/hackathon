@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share, MoreHorizontal, User, EyeOff } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment } from 'firebase/firestore';
 
 const SocialFeed = () => {
+  const navigate = useNavigate();
   const [expandedPosts, setExpandedPosts] = useState(new Set());
+  const [posts, setPosts] = useState([]);
 
   const toggleExpanded = (postId) => {
     const newExpanded = new Set(expandedPosts);
@@ -14,47 +19,62 @@ const SocialFeed = () => {
     setExpandedPosts(newExpanded);
   };
 
-  const posts = [
-    {
-      id: 1,
-      author: 'Maria Santos',
-      isAnonymous: false,
-      avatar: null,
-      mood: { emoji: '😌', label: 'Calmo' },
-      time: '2 horas atrás',
-      content: 'Hoje consegui fazer minha primeira sessão de meditação completa. Ainda é difícil, mas sinto que estou progredindo aos poucos. Alguém mais está tentando meditar regularmente?',
-      likes: 12,
-      comments: 4,
-      shares: 2,
-      isLiked: false
-    },
-    {
-      id: 2,
-      author: 'Usuário Anônimo',
-      isAnonymous: true,
-      avatar: null,
-      mood: { emoji: '😔', label: 'Triste' },
-      time: '4 horas atrás',
-      content: 'Tem dias que parece que nada faz sentido. Estou tentando lembrar que isso também passa, mas hoje está particularmente difícil. Obrigado por existirem.',
-      likes: 28,
-      comments: 15,
-      shares: 3,
-      isLiked: true
-    },
-    {
-      id: 3,
-      author: 'João Silva',
-      isAnonymous: false,
-      avatar: null,
-      mood: { emoji: '😊', label: 'Feliz' },
-      time: '6 horas atrás',
-      content: 'Pequenas vitórias merecem ser celebradas! Hoje consegui sair de casa sem ansiedade. Para quem está lutando: vocês são mais fortes do que imaginam! 💪',
-      likes: 45,
-      comments: 8,
-      shares: 12,
-      isLiked: true
+  useEffect(() => {
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loaded = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          author: data.author || 'Usuário',
+          isAnonymous: data.isAnonymous || false,
+          avatar: data.avatar || null,
+          mood: data.mood
+            ? data.mood
+            : { emoji: '🙂', label: 'Humor' },
+          time: data.createdAt?.toDate?.()
+            ? data.createdAt.toDate().toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            : 'agora',
+          content: data.content,
+          likes: data.likes || 0,
+          comments: data.comments || 0,
+          shares: data.shares || 0,
+          isLiked: false,
+        };
+      });
+      setPosts(loaded);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleToggleLike = async (post) => {
+    try {
+      const updated = posts.map((p) =>
+        p.id === post.id
+          ? { ...p, isLiked: !p.isLiked, likes: (p.likes || 0) + (p.isLiked ? -1 : 1) }
+          : p
+      );
+      setPosts(updated);
+      await updateDoc(doc(db, 'posts', post.id), {
+        likes: increment(post.isLiked ? -1 : 1),
+      });
+    } catch (e) {
+      // ignore errors for now
     }
-  ];
+  };
+
+  const handleShare = async (post) => {
+    try {
+      const url = `${window.location.origin}/post/${post.id}`;
+      // Simple modal via prompt for now
+      window.prompt('Copie o link para compartilhar:', url);
+      const updated = posts.map((p) => (p.id === post.id ? { ...p, shares: (p.shares || 0) + 1 } : p));
+      setPosts(updated);
+      await updateDoc(doc(db, 'posts', post.id), { shares: increment(1) });
+    } catch (e) {
+      // ignore
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -95,12 +115,18 @@ const SocialFeed = () => {
           {/* Post Content */}
           <div className="mb-6">
             <p className="text-gray-200 leading-relaxed">{post.content}</p>
+            {post.image && (
+              <div className="mt-4 rounded-xl overflow-hidden border border-white/10">
+                <img src={post.image} alt="" className="w-full max-h-[500px] object-cover" />
+              </div>
+            )}
           </div>
 
           {/* Post Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
             <div className="flex items-center space-x-6">
               <button
+                onClick={() => handleToggleLike(post)}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                   post.isLiked
                     ? 'text-white bg-white/10'
@@ -112,14 +138,14 @@ const SocialFeed = () => {
               </button>
               
               <button
-                onClick={() => toggleExpanded(post.id)}
+                onClick={() => navigate(`/post/${post.id}`)}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200"
               >
                 <MessageCircle className="w-5 h-5" />
                 <span className="text-sm">{post.comments}</span>
               </button>
               
-              <button className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200">
+              <button onClick={() => handleShare(post)} className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200">
                 <Share className="w-5 h-5" />
                 <span className="text-sm">{post.shares}</span>
               </button>

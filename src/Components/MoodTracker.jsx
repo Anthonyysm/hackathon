@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { TrendingUp, Calendar } from 'lucide-react';
 
-const MoodTracker = () => {
+const MoodTracker = ({ onOpenHumorTab }) => {
   const weeklyData = [
     { day: 'Seg', mood: 6, energy: 7 },
     { day: 'Ter', mood: 4, energy: 5 },
@@ -13,6 +13,23 @@ const MoodTracker = () => {
   ];
 
   const maxValue = 10;
+
+  const trendsRef = useRef(null);
+  const [highlightTrends, setHighlightTrends] = useState(false);
+
+  const handleSaveCheckin = () => {
+    // Se a função onOpenHumorTab foi fornecida, abre a aba de humor
+    if (onOpenHumorTab) {
+      onOpenHumorTab();
+    } else {
+      // Fallback: Scroll até a seção de estatísticas (Tendência Semanal) e destaca rapidamente
+      if (trendsRef.current) {
+        trendsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setHighlightTrends(true);
+        setTimeout(() => setHighlightTrends(false), 1600);
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -48,14 +65,14 @@ const MoodTracker = () => {
             </div>
           ))}
           
-          <button className="w-full bg-gradient-to-r from-white to-gray-200 text-black text-sm font-medium py-3 px-4 rounded-xl hover:from-gray-200 hover:to-gray-300 transform hover:scale-105 transition-all duration-200">
+          <button onClick={handleSaveCheckin} className="w-full bg-gradient-to-r from-white to-gray-200 text-black text-sm font-medium py-3 px-4 rounded-xl hover:from-gray-200 hover:to-gray-300 transform hover:scale-105 transition-all duration-200">
             Salvar Check-in
           </button>
         </div>
       </div>
 
       {/* Weekly Trends */}
-      <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
+      <div ref={trendsRef} className={`bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl transition ${highlightTrends ? 'ring-2 ring-white/50' : ''}`}>
         <div className="flex items-center space-x-2 mb-6">
           <TrendingUp className="w-5 h-5 text-gray-400" />
           <h2 className="text-lg font-semibold text-white">Tendência Semanal</h2>

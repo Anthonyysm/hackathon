@@ -7,14 +7,14 @@ import Register from './Register.jsx';
 import Connected from './Connected.jsx';
 import CompleteProfile from './CompleteProfile.jsx';
 import Home from './Home.jsx';
-// import TherapySessions from './Components/TherapySessions.jsx'; // Removed as per new design
-// import LiveChat from './Components/LiveChat.jsx'; // Removed as per new design
+import HumorTracker from './Components/HumorTracker.jsx';
+import Profile from './Components/Profile.jsx';
+import UserProfile from './Components/UserProfile.jsx';
+import CommunityGroup from './Components/CommunityGroup.jsx';
+import PostDetail from './Components/PostDetail.jsx';
+import Notifications from './Components/Notifications.jsx';
 import { auth } from './firebase';
 import './index.css';
-
-// Placeholder components for new protected routes - no longer needed as content is handled by Home.jsx
-// const NotificationsPage = () => <div className="min-h-screen bg-black text-white flex items-center justify-center"><h1>Notificações</h1></div>;
-// const SettingsPage = () => <div className="min-h-screen bg-black text-white flex items-center justify-center"><h1>Configurações</h1></div>;
 
 const rootElement = document.getElementById('root');
 const root = rootElement ? createRoot(rootElement) : null;
@@ -48,8 +48,6 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function MainRouter() {
-  // Este estado de user e loading já existe dentro de ProtectedRoute, 
-  // mas é necessário aqui para decidir entre App e Home na rota raiz.
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -81,8 +79,14 @@ function MainRouter() {
         {/* Rota Raiz - Landing Page para não logados, Home para logados */}
         <Route path="/" element={user ? <Home /> : <App />} />
 
-        {/* Rotas Protegidas - Home é a única rota protegida, seu conteúdo é gerenciado internamente */}
+        {/* Rotas Protegidas */}
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/humortracker" element={<ProtectedRoute><HumorTracker /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+        <Route path="/community/:groupId" element={<ProtectedRoute><CommunityGroup /></ProtectedRoute>} />
+        <Route path="/post/:postId" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         
         {/* Redirecionar qualquer rota desconhecida para a rota principal */}
         <Route path="*" element={user ? <Navigate to="/home" replace /> : <Navigate to="/" replace />} />

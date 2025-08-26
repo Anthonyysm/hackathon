@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Sun, Moon, Heart } from 'lucide-react';
+import { auth } from '../firebase';
 
 const WelcomeScreen = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   const motivationalMessages = [
     {
@@ -28,17 +32,18 @@ const WelcomeScreen = () => {
   }, []);
 
   useEffect(() => {
-    const slideTimer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % motivationalMessages.length);
-    }, 5000);
-    return () => clearInterval(slideTimer);
-  }, [motivationalMessages.length]);
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return { text: "Bom dia, Gabrielly!", icon: Sun };
-    if (hour < 18) return { text: "Boa tarde, Gabrielly!", icon: Sun };
-    return { text: "Boa noite, Gabrielly!", icon: Moon };
+    const userName = user?.displayName || 'Gabrielly';
+    if (hour < 12) return { text: `Bom dia, ${userName}!`, icon: Sun };
+    if (hour < 18) return { text: `Boa tarde, ${userName}!`, icon: Sun };
+    return { text: `Boa noite, ${userName}!`, icon: Moon };
   };
 
   const greeting = getGreeting();
@@ -142,7 +147,7 @@ const WelcomeScreen = () => {
               <p className="text-gray-300 text-sm">Especialista em Terapia Cognitivo-Comportamental</p>
               <p className="text-gray-400 text-xs mt-1">Experiência: 15 anos</p>
             </div>
-            <button className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200">Ver Perfil</button>
+            <button onClick={() => navigate('/user/' + encodeURIComponent('Dr. Alberto Mendes').toLowerCase().replace(/%20/g,'-'))} className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200">Ver Perfil</button>
           </div>
 
           {/* Sample Psychologist 2 */}
@@ -155,7 +160,7 @@ const WelcomeScreen = () => {
               <p className="text-gray-300 text-sm">Especialista em Psicologia Analítica</p>
               <p className="text-gray-400 text-xs mt-1">Experiência: 10 anos</p>
             </div>
-            <button className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200">Ver Perfil</button>
+            <button onClick={() => navigate('/user/' + encodeURIComponent('Dra. Clara Ribeiro').toLowerCase().replace(/%20/g,'-'))} className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200">Ver Perfil</button>
           </div>
         </div>
       </div>

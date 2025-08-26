@@ -1,17 +1,28 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Search, Home, MessageCircle, Users, Calendar, BarChart3, Settings, Flower, Menu, X, LogOut, User as UserIcon, Bell, Compass } from 'lucide-react';
+import { Search, Home, MessageCircle, Users, Calendar, BarChart3, Settings, Flower, Menu, X, LogOut, User as UserIcon, Bell, Compass, BookOpen, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-const Header = ({ activeTab, setActiveTab }) => {
+const Header = ({ activeTab, setActiveTab, onStartTour }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          setUser({ ...currentUser, role: userSnap.data().role });
+        } else {
+          setUser(currentUser);
+        }
+      } else {
+        setUser(null);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -26,12 +37,22 @@ const Header = ({ activeTab, setActiveTab }) => {
     setIsMenuOpen(false);
   }, []);
 
-  const navItems = useMemo(() => [
-    { name: 'Início', tab: 'home', icon: Home },
-    { name: 'Sessões', tab: 'sessions', icon: Users },
-    { name: 'Chat', tab: 'chat', icon: MessageCircle },
-    { name: 'Notificações', tab: 'notifications', icon: Bell },
-  ], []);
+  const navItems = useMemo(() => {
+    const items = [
+      { name: 'Início', tab: 'home', icon: Home },
+      { name: 'Chat', tab: 'chat', icon: MessageCircle },
+      { name: 'Diário', tab: 'diary', icon: BookOpen },
+      { name: 'Humor', tab: 'humor', icon: BarChart3 },
+    ];
+
+    if (user && user.role === 'psicologo') {
+      items.splice(2, 0, { name: 'Sessões', tab: 'sessions', icon: Users });
+    } else if (user && user.role === 'cliente') {
+      items.splice(2, 0, { name: 'Sessões', tab: 'sessions', icon: Calendar });
+    }
+
+    return items;
+  }, [user]);
 
   const handleNavClick = useCallback((tabName) => {
     setActiveTab(tabName);
@@ -104,20 +125,61 @@ const Header = ({ activeTab, setActiveTab }) => {
                   <item.icon className="w-5 h-5" />
                 </button>
               ))}
+              
+              {/* Notifications Button */}
+              <button
+                onClick={() => navigate('/notifications')}
+                className="relative text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full hover:bg-white/10"
+              >
+                <Bell className="w-5 h-5" />
+                {/* Notification Badge */}
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                  3
+                </span>
+              </button>
+
+              {/* Settings Button */}
+              <button
+                onClick={() => handleNavClick('settings')}
+                className={`relative text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full hover:bg-white/10 ${activeTab === 'settings' ? 'bg-white/20' : ''}`}
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+
+              {/* Help Button */}
+              <button
+                onClick={onStartTour}
+                className="text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full hover:bg-white/10"
+                title="Iniciar tour do aplicativo"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
             </div>
 
             {/* User Profile and Logout */}
             {user ? (
               <div className="relative">
                 <button 
-                  className="flex items-center space-x-2 text-white/70 hover:text-white transition-colors"
+                  className="flex items-center space-x-3 text-white/70 hover:text-white transition-colors"
                   onClick={toggleDropdown}
                 >
                   <UserIcon className="w-5 h-5" />
-                  <span className="hidden md:block text-sm font-light">{user.displayName || 'Usuário'}</span>
+                  <span 
+                    onClick={() => navigate('/user/' + user.uid)}
+                    className="hidden md:block text-sm font-light hover:text-white transition-colors cursor-pointer"
+                  >
+                    {user.displayName || 'Usuário'}
+                  </span>
                 </button>
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-black/90 border border-white/10 rounded-md shadow-lg py-1 z-60">
+                    <button 
+                      onClick={() => navigate('/user/' + user.uid)} 
+                      className="flex items-center w-full px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Meu Perfil
+                    </button>
                     <button 
                       onClick={() => handleNavClick('settings')} 
                       className="flex items-center w-full px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
@@ -163,6 +225,36 @@ const Header = ({ activeTab, setActiveTab }) => {
                   <span>{item.name}</span>
                 </button>
               ))}
+              
+              {/* Notifications in mobile menu */}
+              <button
+                onClick={() => navigate('/notifications')}
+                className="text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3"
+              >
+                <Bell className="w-6 h-6" />
+                <span>Notificações</span>
+                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  3
+                </span>
+              </button>
+
+              {/* Settings in mobile menu */}
+              <button
+                onClick={() => handleNavClick('settings')}
+                className={`text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3 ${activeTab === 'settings' ? 'text-white' : ''}`}
+              >
+                <Settings className="w-6 h-6" />
+                <span>Configurações</span>
+              </button>
+
+              {/* Help in mobile menu */}
+              <button
+                onClick={onStartTour}
+                className="text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3"
+              >
+                <HelpCircle className="w-6 h-6" />
+                <span>Ajuda e Tour</span>
+              </button>
               {user ? (
                 <button 
                   onClick={handleLogout} 
