@@ -4,6 +4,7 @@ import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail } f
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowLeft } from 'lucide-react';
 import LightRays from './Components/LightRays';
+import { send } from 'vite';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -20,11 +21,45 @@ const Login = () => {
     });
   };
 
+  const sendToken = async (user) => {
+    try {
+      const token = await user.getIdToken();
+
+      const response = await fetch('http://localhost:8000/api/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: user.email,
+          uid: user.uid,
+          displayName: user.displayName || ''
+        })
+      });
+      if (!response.ok) {
+        throw new Error('Erro ao conectar com o servidor');
+      }
+
+      const data = await response.json();
+      console.log('Backend response:', data);
+      
+      return data;
+    } catch (error) {
+      console.error('Erro ao comunicar com backend:', error);
+      // Não impede o login, apenas loga o erro
+      return null;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+
+      await sendToken(cred.user);
+
       const userRef = doc(db, 'users', cred.user.uid);
       const snap = await getDoc(userRef);
       if (!snap.exists()) {
@@ -52,6 +87,8 @@ const Login = () => {
     setIsLoading(true);
     try {
       const cred = await signInWithPopup(auth, googleProvider);
+
+      await sendToken(cred.user);
       const userRef = doc(db, 'users', cred.user.uid);
       await setDoc(userRef, {
         uid: cred.user.uid,
