@@ -41,17 +41,17 @@ function App() {
   // Dados memoizados para evitar recriações
   const testimonials = useMemo(() => [
     {
-      name: "Maria Silva",
+      name: "Eduardo Silva Pimenta da Mota",
       role: "Usuária do Sereno",
       content: "O Sereno me ajudou a encontrar uma comunidade que entende o que estou passando. É incrível poder compartilhar sem medo de julgamentos."
     },
     {
-      name: "Dr. Carlos Mendes",
-      role: "Psicólogo CRP 12345",
-      content: "Como profissional, o Sereno me permite alcançar mais pessoas que precisam de ajuda. A plataforma é intuitiva e segura."
+      name: "Bruno de Medeiros Rodrigues",
+      role: "Aluno de Sistemas da Informação",
+      content: "O Sereno me permite alcançar mais pessoas que precisam de ajuda. A plataforma é intuitiva e segura."
     },
     {
-      name: "Ana Costa",
+      name: "Pedro Henrique Cavalcante dos Santos",
       role: "Membro da Comunidade",
       content: "Os grupos de apoio me deram força para enfrentar a ansiedade. Encontrei pessoas que realmente me entendem."
     }

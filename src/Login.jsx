@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { auth, googleProvider, db } from './firebase';
-import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowLeft } from 'lucide-react';
 import LightRays from './Components/LightRays';
-import { send } from 'vite';
+
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -59,6 +59,7 @@ const Login = () => {
       const cred = await signInWithEmailAndPassword(auth, formData.email, formData.password);
 
       await sendToken(cred.user);
+      
 
       const userRef = doc(db, 'users', cred.user.uid);
       const snap = await getDoc(userRef);
@@ -86,9 +87,15 @@ const Login = () => {
   const handleGoogle = async () => {
     setIsLoading(true);
     try {
-      const cred = await signInWithPopup(auth, googleProvider);
-
-      await sendToken(cred.user);
+      let cred;
+      try {
+        cred = await signInWithPopup(auth, googleProvider);
+        await sendToken(cred.user);
+      } catch (popupError) {
+        // Fallback para redirect em ambientes que bloqueiam popups
+        await signInWithRedirect(auth, googleProvider);
+        return; // fluxo continua no getRedirectResult
+      }
       const userRef = doc(db, 'users', cred.user.uid);
       await setDoc(userRef, {
         uid: cred.user.uid,
@@ -107,6 +114,31 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    // Trata retorno do signInWithRedirect
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          await sendToken(result.user);
+          const userRef = doc(db, 'users', result.user.uid);
+          await setDoc(userRef, {
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName || '',
+            photoURL: result.user.photoURL || '',
+            provider: 'google',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+          window.location.hash = '#/connected';
+        }
+      } catch (e) {
+        // ignora se não houver redirect result
+      }
+    })();
+  }, []);
 
   const handleReset = async () => {
     if (!formData.email) {
@@ -229,7 +261,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-white text-black hover:bg-white/90 disabled:bg-white/60 text-black font-medium rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed shadow-lg"
+              className="w-full py-3 px-4 bg-white hover:bg-white/90 disabled:bg-white/60 font-medium rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed shadow-lg"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
