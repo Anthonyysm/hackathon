@@ -1,143 +1,123 @@
-import { useState, useEffect, useCallback } from 'react';
-import { auth, db } from '../firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { notificationService } from '../services/firebaseService';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Fetch notifications
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
+  // Buscar notificações do usuário
+  const fetchNotifications = async () => {
+    if (!user?.uid) {
+      setNotifications([]);
+      setUnreadCount(0);
       setLoading(false);
       return;
     }
 
-    const q = query(
-      collection(db, 'notifications'),
-      where('recipientId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const loaded = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt?.toDate() || new Date()
-      }));
-      setNotifications(loaded);
-      setUnreadCount(loaded.filter(n => !n.read).length);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching notifications:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Create notification
-  const createNotification = useCallback(async (notificationData) => {
     try {
-      await addDoc(collection(db, 'notifications'), {
-        ...notificationData,
-        createdAt: serverTimestamp(),
-        read: false
-      });
-      return true;
-    } catch (error) {
-      console.error('Error creating notification:', error);
-      return false;
-    }
-  }, []);
-
-  // Create like notification
-  const createLikeNotification = useCallback(async (postId, postAuthorId, postContent) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.uid === postAuthorId) return false;
-
-    return await createNotification({
-      type: 'like_post',
-      recipientId: postAuthorId,
-      senderId: currentUser.uid,
-      senderName: currentUser.displayName || 'Usuário',
-      postId: postId,
-      postContent: postContent?.substring(0, 100)
-    });
-  }, [createNotification]);
-
-  // Create comment notification
-  const createCommentNotification = useCallback(async (postId, postAuthorId, postContent) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.uid === postAuthorId) return false;
-
-    return await createNotification({
-      type: 'comment',
-      recipientId: postAuthorId,
-      senderId: currentUser.uid,
-      senderName: currentUser.displayName || 'Usuário',
-      postId: postId,
-      postContent: postContent?.substring(0, 100)
-    });
-  }, [createNotification]);
-
-  // Create follow notification
-  const createFollowNotification = useCallback(async (followedUserId) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.uid === followedUserId) return false;
-
-    return await createNotification({
-      type: 'follow',
-      recipientId: followedUserId,
-      senderId: currentUser.uid,
-      senderName: currentUser.displayName || 'Usuário'
-    });
-  }, [createNotification]);
-
-  // Mark notification as read
-  const markAsRead = useCallback(async (notificationId) => {
-    try {
-      const { updateDoc, doc } = await import('firebase/firestore');
-      const notificationRef = doc(db, 'notifications', notificationId);
-      await updateDoc(notificationRef, { read: true });
-      return true;
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      return false;
-    }
-  }, []);
-
-  // Mark all notifications as read
-  const markAllAsRead = useCallback(async () => {
-    try {
-      const { updateDoc, doc, writeBatch } = await import('firebase/firestore');
-      const batch = writeBatch(db);
+      setLoading(true);
+      const userNotifications = await notificationService.getUserNotifications(user.uid);
+      setNotifications(userNotifications);
       
-      const unreadNotifications = notifications.filter(n => !n.read);
-      unreadNotifications.forEach(notification => {
-        const notificationRef = doc(db, 'notifications', notification.id);
-        batch.update(notificationRef, { read: true });
-      });
-      
-      await batch.commit();
-      return true;
+      // Contar notificações não lidas
+      const unread = userNotifications.filter(notification => !notification.read);
+      setUnreadCount(unread.length);
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      return false;
+      console.error('Erro ao buscar notificações:', error);
+      setNotifications([]);
+      setUnreadCount(0);
+    } finally {
+      setLoading(false);
     }
-  }, [notifications]);
+  };
+
+  // Marcar notificação como lida
+  const markAsRead = async (notificationId) => {
+    try {
+      await notificationService.markNotificationAsRead(notificationId);
+      
+      // Atualizar estado local
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, read: true }
+            : notification
+        )
+      );
+      
+      // Atualizar contador
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
+    }
+  };
+
+  // Marcar todas como lidas
+  const markAllAsRead = async () => {
+    if (!user?.uid) return;
+    
+    try {
+      await notificationService.markAllNotificationsAsRead(user.uid);
+      
+      // Atualizar estado local
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+      
+      // Zerar contador
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Erro ao marcar todas como lidas:', error);
+    }
+  };
+
+  // Deletar notificação
+  const deleteNotification = async (notificationId) => {
+    try {
+      await notificationService.deleteNotification(notificationId);
+      
+      // Remover do estado local
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      
+      // Atualizar contador se não estava lida
+      const deletedNotification = notifications.find(n => n.id === notificationId);
+      if (deletedNotification && !deletedNotification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Erro ao deletar notificação:', error);
+    }
+  };
+
+  // Limpar todas as notificações
+  const clearAllNotifications = async () => {
+    if (!user?.uid) return;
+    
+    try {
+      await notificationService.clearAllNotifications(user.uid);
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Erro ao limpar notificações:', error);
+    }
+  };
+
+  // Buscar notificações quando usuário mudar
+  useEffect(() => {
+    fetchNotifications();
+  }, [user?.uid]);
 
   return {
     notifications,
     unreadCount,
     loading,
-    createNotification,
-    createLikeNotification,
-    createCommentNotification,
-    createFollowNotification,
+    fetchNotifications,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    deleteNotification,
+    clearAllNotifications
   };
 };

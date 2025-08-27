@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Phone, Calendar, ArrowLeft, User, AtSign, Camera, Image, FileText, Upload, X } from 'lucide-react';
+import { Phone, Calendar, ArrowLeft, User, AtSign, Camera, Image, FileText, Upload, X, ArrowRight, CheckCircle } from 'lucide-react';
 import LightRays from './Components/LightRays';
+import { useAuth } from './contexts/AuthContext';
+import { notificationService } from './services/firebaseService';
 
 const CompleteProfile = () => {
   const [formData, setFormData] = useState({
@@ -139,6 +141,21 @@ const CompleteProfile = () => {
       
       await setDoc(userRef, userDataToSave, { merge: true });
       
+      // Criar notificação de boas-vindas
+      try {
+        await notificationService.createNotification({
+          type: 'welcome',
+          title: 'Bem-vindo ao Sereno! 🎉',
+          message: 'Seu perfil foi criado com sucesso. Comece a explorar a plataforma e conectar-se com outros usuários.',
+          recipientId: user.uid,
+          senderId: 'system',
+          senderName: 'Sereno',
+          actionUrl: '/home'
+        });
+      } catch (error) {
+        console.warn('Erro ao criar notificação de boas-vindas:', error);
+      }
+
       console.log('Perfil criado com sucesso!');
       
       // Redirecionar para /connected (sem notificações)

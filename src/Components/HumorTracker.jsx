@@ -44,57 +44,21 @@ const HumorTracker = () => {
     'Luto', 'Finanças', 'Outras'
   ];
 
-  // Mock mood entries
-  const mockMoodEntries = [
-    {
-      id: 1,
-      date: new Date('2024-01-15'),
-      mood: 'happy',
-      cause: 'Família',
-      notes: 'Dia muito bom com a família, almoço especial.',
-      intensity: 8
-    },
-    {
-      id: 2,
-      date: new Date('2024-01-14'),
-      mood: 'sad',
-      cause: 'Trabalho',
-      notes: 'Estresse no trabalho, reunião difícil.',
-      intensity: 6
-    },
-    {
-      id: 3,
-      date: new Date('2024-01-13'),
-      mood: 'peace',
-      cause: 'Lazer',
-      notes: 'Meditação matinal, sentindo-me calmo.',
-      intensity: 9
-    }
-  ];
-
-  const monthlyStats = [
-    { mood: 'Feliz', percentage: 45, color: 'bg-green-500', trend: 'up' },
-    { mood: 'Triste', percentage: 25, color: 'bg-blue-500', trend: 'down' },
-    { mood: 'Paz', percentage: 20, color: 'bg-purple-500', trend: 'up' },
-    { mood: 'Raiva', percentage: 10, color: 'bg-red-500', trend: 'down' }
-  ];
-
-  // Calendar data (simplified)
-  const calendarDays = Array.from({ length: 31 }, (_, i) => {
-    const day = i + 1;
-    const entry = mockMoodEntries.find(entry => 
-      entry.date.getDate() === day && entry.date.getMonth() === 0
-    );
-    return {
-      day,
-      mood: entry ? entry.mood : null,
-      intensity: entry ? entry.intensity : null
-    };
-  });
+  // Arrays vazios para dados reais
+  const mockMoodEntries = [];
+  const monthlyStats = [];
+  const calendarDays = Array.from({ length: 31 }, (_, i) => ({
+    day: i + 1,
+    mood: null,
+    intensity: null
+  }));
 
   const handleMoodSubmit = () => {
-    // TODO: Implement mood submission
-    console.log('Mood submitted:', { selectedMood, selectedCause });
+    if (!selectedMood || !selectedCause) return;
+    
+    // TODO: Implementar envio de humor para Firebase
+    console.log('Humor enviado:', { selectedMood, selectedCause });
+    
     setShowMoodForm(false);
     setSelectedMood('');
     setSelectedCause('');
@@ -311,12 +275,12 @@ const HumorTracker = () => {
               <div className="text-center p-4 bg-white/5 rounded-lg">
                 <div className="text-2xl mb-2">😊</div>
                 <div className="text-white font-medium">Humor Médio</div>
-                <div className="text-white/70 text-sm">7.5/10</div>
+                <div className="text-white/70 text-sm">0/10</div>
               </div>
               <div className="text-center p-4 bg-white/5 rounded-lg">
                 <div className="text-2xl mb-2">📊</div>
                 <div className="text-white font-medium">Entradas</div>
-                <div className="text-white/70 text-sm">5 esta semana</div>
+                <div className="text-white/70 text-sm">0 esta semana</div>
               </div>
             </div>
           </div>
@@ -351,38 +315,46 @@ const HumorTracker = () => {
           </div>
 
           <div className="space-y-4">
-            {moodEntries.map((entry) => (
-              <div
-                key={entry.id}
-                className="bg-white/5 border border-white/10 rounded-xl p-4"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getMoodColor(entry.mood)}`}>
-                      <span className="text-xl">{getMoodEmoji(entry.mood)}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-white">{entry.cause}</h4>
-                      <p className="text-sm text-white/70">{entry.notes}</p>
-                      <div className="flex items-center space-x-2 text-xs text-white/50 mt-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{entry.date.toLocaleDateString('pt-BR')}</span>
-                        <span>•</span>
-                        <span>Intensidade: {entry.intensity}/10</span>
+            {moodEntries.length === 0 ? (
+              <div className="text-center py-12">
+                <Activity className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white/70 mb-2">Nenhuma entrada de humor</h3>
+                <p className="text-white/50">Comece registrando seu humor usando o botão acima</p>
+              </div>
+            ) : (
+              moodEntries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="bg-white/5 border border-white/10 rounded-xl p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getMoodColor(entry.mood)}`}>
+                        <span className="text-xl">{getMoodEmoji(entry.mood)}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-white">{entry.cause}</h4>
+                        <p className="text-sm text-white/70">{entry.notes}</p>
+                        <div className="flex items-center space-x-2 text-xs text-white/50 mt-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{entry.date.toLocaleDateString('pt-BR')}</span>
+                          <span>•</span>
+                          <span>Intensidade: {entry.intensity}/10</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="text-white/50 hover:text-white p-1">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button className="text-white/50 hover:text-white p-1">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex space-x-2">
+                      <button className="text-white/50 hover:text-white p-1">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button className="text-white/50 hover:text-white p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}
@@ -399,22 +371,30 @@ const HumorTracker = () => {
             </div>
 
             <div className="space-y-3">
-              {monthlyStats.map((stat, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded ${stat.color}`}></div>
-                    <span className="text-sm text-gray-300">{stat.mood}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-400">{stat.percentage}%</span>
-                    {stat.trend === 'up' ? (
-                      <TrendingUp className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-red-400" />
-                    )}
-                  </div>
+              {monthlyStats.length === 0 ? (
+                <div className="text-center py-8">
+                  <BarChart3 className="w-12 h-12 text-white/30 mx-auto mb-3" />
+                  <p className="text-white/50">Nenhuma estatística disponível</p>
+                  <p className="text-white/30 text-sm">Registre seu humor para ver análises</p>
                 </div>
-              ))}
+              ) : (
+                monthlyStats.map((stat, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded ${stat.color}`}></div>
+                      <span className="text-sm text-gray-300">{stat.mood}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-400">{stat.percentage}%</span>
+                      {stat.trend === 'up' ? (
+                        <TrendingUp className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-400" />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -422,20 +402,30 @@ const HumorTracker = () => {
           <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
             <h3 className="text-lg font-semibold text-white mb-4">Metas e Insights</h3>
             <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                <Target className="w-5 h-5 text-blue-400" />
-                <div>
-                  <div className="text-white font-medium">Meta: 7 dias consecutivos</div>
-                  <div className="text-white/70 text-sm">Progresso: 5/7 dias</div>
+              {monthlyStats.length === 0 ? (
+                <div className="text-center py-8">
+                  <Target className="w-12 h-12 text-white/30 mx-auto mb-3" />
+                  <p className="text-white/50">Nenhuma meta definida</p>
+                  <p className="text-white/30 text-sm">Comece registrando seu humor para definir metas</p>
                 </div>
-              </div>
-              <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                <Award className="w-5 h-5 text-yellow-400" />
-                <div>
-                  <div className="text-white font-medium">Melhor humor da semana</div>
-                  <div className="text-white/70 text-sm">Quinta-feira: 9/10</div>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
+                    <Target className="w-5 h-5 text-blue-400" />
+                    <div>
+                      <div className="text-white font-medium">Meta: 7 dias consecutivos</div>
+                      <div className="text-white/70 text-sm">Progresso: 0/7 dias</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
+                    <Award className="w-5 h-5 text-yellow-400" />
+                    <div>
+                      <div className="text-white font-medium">Melhor humor da semana</div>
+                      <div className="text-white/70 text-sm">Nenhuma entrada ainda</div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </>

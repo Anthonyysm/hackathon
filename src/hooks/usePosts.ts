@@ -157,44 +157,45 @@ export const usePosts = () => {
 
   // Curtir/descurtir post
   const togglePostLike = useCallback(async (postId: string) => {
-    if (!user) {
-      throw new Error('Usuário não autenticado');
-    }
-
+    if (!user) return false;
+    
     try {
       const success = await postService.togglePostLike(postId, user.uid);
       
       if (success) {
         // Atualizar estado local
-        setPosts(prevPosts => 
-          prevPosts.map(post => {
+        setPosts(prev => 
+          prev.map(post => {
             if (post.id === postId) {
               const isLiked = post.likes.includes(user.uid);
-              if (isLiked) {
-                return { ...post, likes: post.likes.filter(id => id !== user.uid) };
-              } else {
-                return { ...post, likes: [...post.likes, user.uid] };
-              }
+              const newLikes = isLiked 
+                ? post.likes.filter(id => id !== user.uid)
+                : [...post.likes, user.uid];
+              
+              return {
+                ...post,
+                likes: newLikes
+              };
             }
             return post;
           })
         );
-        return true;
       }
       
+      return success;
+    } catch (error) {
+      console.error('Erro ao curtir post:', error);
       return false;
-    } catch (err) {
-      console.error('Erro ao curtir post:', err);
-      throw err;
     }
   }, [user]);
 
-  // Verificar se post foi curtido pelo usuário
+  // Verificar se post foi curtido pelo usuário atual
   const isPostLiked = useCallback((postId: string) => {
     if (!user) return false;
+    
     const post = posts.find(p => p.id === postId);
     return post ? post.likes.includes(user.uid) : false;
-  }, [user, posts]);
+  }, [posts, user]);
 
   // Adicionar comentário
   const addComment = useCallback(async (postId: string, content: string) => {

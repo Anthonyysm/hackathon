@@ -13,23 +13,19 @@ const InteractiveDiary = () => {
     "Que desafio você enfrentou hoje?"
   ];
 
-  const recentEntries = [
-    {
-      date: "Hoje",
-      preview: "Hoje foi um dia desafiador, mas consegui...",
-      mood: "😌"
-    },
-    {
-      date: "Ontem",
-      preview: "Me senti mais confiante durante a apresentação...",
-      mood: "😊"
-    },
-    {
-      date: "2 dias atrás",
-      preview: "Pratiquei meditação pela manhã e isso me ajudou...",
-      mood: "😌"
-    }
-  ];
+  // Array vazio para dados reais
+  const recentEntries = [];
+
+  const handleSaveEntry = () => {
+    if (!diaryEntry.trim() || !selectedPrompt) return;
+    
+    // TODO: Implementar salvamento no Firebase
+    console.log('Salvando reflexão:', { prompt: selectedPrompt, entry: diaryEntry });
+    
+    // Limpar formulário
+    setDiaryEntry('');
+    setSelectedPrompt('');
+  };
 
   return (
     <div className="space-y-6 animation-initial animate-fade-in-up animation-delay-100">
@@ -76,7 +72,11 @@ const InteractiveDiary = () => {
           />
           
           <div className="flex justify-end">
-            <button className="bg-gradient-to-r from-white to-gray-200 text-black px-6 py-2 rounded-lg font-medium hover:from-gray-200 hover:to-gray-300 transform hover:scale-105 transition-all duration-200 flex items-center space-x-2">
+            <button 
+              onClick={handleSaveEntry}
+              disabled={!diaryEntry.trim() || !selectedPrompt}
+              className="bg-gradient-to-r from-white to-gray-200 text-black px-6 py-2 rounded-lg font-medium hover:from-gray-200 hover:to-gray-300 transform hover:scale-105 transition-all duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Send className="w-4 h-4" />
               <span>Salvar Reflexão</span>
             </button>
@@ -88,23 +88,31 @@ const InteractiveDiary = () => {
       <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
         <h3 className="text-lg font-semibold text-white mb-4">Reflexões Recentes</h3>
         <div className="space-y-3">
-          {recentEntries.map((entry, index) => (
-            <button
-              key={index}
-              className="w-full bg-white/5 border border-gray-200/20 rounded-lg p-4 hover:bg-white/10 hover:border-gray-300/20 transition-all duration-200 group"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">{entry.mood}</span>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-white">{entry.date}</p>
-                    <p className="text-xs text-gray-400 truncate max-w-[200px]">{entry.preview}</p>
+          {recentEntries.length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-white/70 mb-2">Nenhuma reflexão ainda</h3>
+              <p className="text-white/50">Comece escrevendo sua primeira reflexão acima</p>
+            </div>
+          ) : (
+            recentEntries.map((entry, index) => (
+              <button
+                key={index}
+                className="w-full bg-white/5 border border-gray-200/20 rounded-lg p-4 hover:bg-white/10 hover:border-gray-300/20 transition-all duration-200 group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{entry.mood}</span>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-white">{entry.date}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[200px]">{entry.preview}</p>
+                    </div>
                   </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors duration-200" />
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors duration-200" />
-              </div>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       </div>
     </div>

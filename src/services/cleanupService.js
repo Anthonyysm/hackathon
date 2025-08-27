@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export const cleanupService = {
@@ -108,29 +108,52 @@ export const cleanupService = {
     }
   },
 
-  // Executar todas as limpezas
-  async runAllCleanups() {
+  // Limpar notificações antigas (mais de 30 dias)
+  async cleanupOldNotifications() {
     try {
-      console.log('Iniciando processo de limpeza...');
+      const notificationsRef = collection(db, 'notifications');
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const [anonymousResult, privateResult] = await Promise.all([
-        this.cleanupAnonymousPosts(),
-        this.cleanupPrivatePosts()
-      ]);
+      const q = query(
+        notificationsRef,
+        where('createdAt', '<', thirtyDaysAgo)
+      );
       
-      const totalDeleted = anonymousResult.deletedCount + privateResult.deletedCount;
+      const querySnapshot = await getDocs(q);
       
-      console.log(`Limpeza completa: ${totalDeleted} posts foram deletados`);
+      if (querySnapshot.empty) {
+        console.log('Nenhuma notificação antiga para limpar');
+        return;
+      }
       
-      return {
-        anonymousPosts: anonymousResult,
-        privatePosts: privateResult,
-        totalDeleted
-      };
+      const batch = writeBatch(db);
+      querySnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+      console.log(`Limpeza de notificações: ${querySnapshot.docs.length} notificações antigas removidas`);
       
     } catch (error) {
-      console.error('Erro durante processo de limpeza:', error);
-      throw error;
+      console.error('Erro ao limpar notificações antigas:', error);
+    }
+  },
+
+  // Executar todas as limpezas
+  async runAllCleanups() {
+    console.log('Iniciando limpeza automática...');
+    
+    try {
+      await Promise.all([
+        this.cleanupAnonymousPosts(),
+        this.cleanupPrivatePosts(),
+        this.cleanupOldNotifications()
+      ]);
+      
+      console.log('Limpeza automática concluída com sucesso');
+    } catch (error) {
+      console.error('Erro durante limpeza automática:', error);
     }
   }
 };

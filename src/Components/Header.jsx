@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Search, Home, MessageCircle, Calendar, BarChart3, Settings, Menu, X, Bell, BookOpen, HelpCircle, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
 import Input from '../Components/ui/Input';
 
 const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
@@ -9,6 +10,7 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, loading } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const menuRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -213,7 +215,11 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
                 aria-current={activeTab === 'notifications' ? 'page' : undefined}
               >
                 <Bell className="w-5 h-5" aria-hidden="true" />
-                <span className="badge" aria-label="3 notificações não lidas">3</span>
+                {unreadCount > 0 && (
+                  <span className="badge" aria-label={`${unreadCount} notificação${unreadCount > 1 ? 's' : ''} não lida${unreadCount > 1 ? 's' : ''}`}>
+                    {unreadCount}
+                  </span>
+                )}
               </button>
 
               {/* Settings Button */}
@@ -342,7 +348,9 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
                 >
                   <Bell className="w-6 h-6" aria-hidden="true" />
                   <span>Notificações</span>
-                  <span className="badge-large">3</span>
+                  {unreadCount > 0 && (
+                    <span className="badge-large">{unreadCount}</span>
+                  )}
                 </button>
 
                 <button

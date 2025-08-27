@@ -153,37 +153,94 @@ export const postService = {
     try {
       // Tenta usar Firebase primeiro
       const postsRef = collection(db, 'posts');
+      
+      // Consulta simples sem filtros complexos para evitar problemas de índice
       let q = query(
         postsRef,
-        where('visibility', '==', 'public'), // Apenas posts públicos
         orderBy('createdAt', 'desc'),
         limit(limitCount)
       );
       
-      // Se startAfter > 0, usar paginação
-      if (startAfter > 0) {
-        // TODO: Implementar paginação com startAfter
-        // Por enquanto, retorna posts do início
-        q = query(
-          postsRef,
-          where('visibility', '==', 'public'),
-          orderBy('createdAt', 'desc'),
-          limit(limitCount)
-        );
-      }
-      
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Filtrar posts públicos no lado do cliente para evitar problemas de índice
+      const publicPosts = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(post => post.visibility === 'public');
+      
+      return publicPosts;
+      
     } catch (error) {
-      console.warn('Firebase não disponível, usando dados mockados:', error);
-      // Retorna dados mockados se Firebase falhar
+      // Se for erro de índice, usar dados mockados
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando dados mockados');
+        return mockPosts
+          .filter(post => post.visibility === 'public')
+          .slice(startAfter, startAfter + limitCount);
+      }
+      
+      // Para outros erros, logar e usar dados mockados
+      console.warn('Erro ao buscar posts do Firebase, usando dados mockados:', error);
       return mockPosts
         .filter(post => post.visibility === 'public')
         .slice(startAfter, startAfter + limitCount);
+    }
+  },
+
+  // Buscar posts de um usuário específico
+  async getUserPosts(userId, limitCount = 50) {
+    try {
+      // Tenta usar Firebase primeiro
+      const postsRef = collection(db, 'posts');
+      
+      // Consulta para posts do usuário específico
+      let q = query(
+        postsRef,
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      // Filtrar posts do usuário específico que são públicos e não anônimos
+      const userPosts = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(post => 
+          post.userId === userId && 
+          post.visibility === 'public' && 
+          !post.isAnonymous
+        );
+      
+      return userPosts;
+      
+    } catch (error) {
+      // Se for erro de índice, usar dados mockados
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando dados mockados');
+        return mockPosts
+          .filter(post => 
+            post.userId === userId && 
+            post.visibility === 'public' && 
+            !post.isAnonymous
+          )
+          .slice(0, limitCount);
+      }
+      
+      // Para outros erros, logar e usar dados mockados
+      console.warn('Erro ao buscar posts do usuário no Firebase, usando dados mockados:', error);
+      return mockPosts
+        .filter(post => 
+          post.userId === userId && 
+          post.visibility === 'public' && 
+          !post.isAnonymous
+        )
+        .slice(0, limitCount);
     }
   },
 
@@ -210,6 +267,20 @@ export const postService = {
             likes: [...likes, userId],
             updatedAt: serverTimestamp()
           });
+          
+          // Criar notificação de curtida (se não for o próprio autor)
+          if (postData.userId !== userId) {
+            try {
+              await notificationService.createLikeNotification(
+                postId, 
+                postData.userId, 
+                userId, 
+                'Usuário' // TODO: Buscar nome real do usuário
+              );
+            } catch (error) {
+              console.warn('Erro ao criar notificação de curtida:', error);
+            }
+          }
         }
         
         return true;
@@ -219,63 +290,6 @@ export const postService = {
     } catch (error) {
       console.error('Erro ao curtir post:', error);
       throw error;
-    }
-  },
-
-  // Buscar posts de um usuário específico
-  async getUserPosts(userId) {
-    try {
-      // Tenta usar Firebase primeiro
-      const postsRef = collection(db, 'posts');
-      
-      // Consulta simples sem filtros complexos para evitar problemas de índice
-      const q = query(
-        postsRef, 
-        orderBy('createdAt', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      // Filtrar posts do usuário no lado do cliente
-      const userPosts = querySnapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            likes: Array.isArray(data.likes) ? data.likes : [],
-            commentCount: data.commentCount || 0,
-            shares: data.shares || 0
-          };
-        })
-        .filter(post => post.userId === userId);
-      
-      return userPosts;
-      
-    } catch (error) {
-      // Se for erro de índice, usar dados mockados
-      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
-        console.warn('Índice não configurado no Firestore, usando dados mockados');
-        return mockPosts
-          .filter(post => post.userId === userId)
-          .map(post => ({
-            ...post,
-            likes: Array.isArray(post.likes) ? post.likes : [],
-            commentCount: post.commentCount || 0,
-            shares: post.shares || 0
-          }));
-      }
-      
-      // Para outros erros, logar e usar dados mockados
-      console.warn('Erro ao buscar posts do usuário no Firebase, usando dados mockados:', error);
-      return mockPosts
-        .filter(post => post.userId === userId)
-        .map(post => ({
-          ...post,
-          likes: Array.isArray(post.likes) ? post.likes : [],
-          commentCount: post.commentCount || 0,
-          shares: post.shares || 0
-        }));
     }
   }
 };
@@ -333,20 +347,33 @@ export const groupService = {
     try {
       // Tenta usar Firebase primeiro
       const groupsRef = collection(db, 'groups');
+      
+      // Consulta simples sem filtros complexos para evitar problemas de índice
       const q = query(
         groupsRef, 
-        where('category', '==', category),
         orderBy('createdAt', 'desc')
       );
+      
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Filtrar grupos por categoria no lado do cliente
+      const categoryGroups = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(group => group.category === category);
+      
+      return categoryGroups;
+      
     } catch (error) {
+      // Se for erro de índice, usar dados mockados
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando dados mockados');
+        return mockGroups.filter(group => group.category === category);
+      }
+      
       console.warn('Firebase não disponível, usando dados mockados:', error);
-      // Retorna dados mockados se Firebase falhar
       return mockGroups.filter(group => group.category === category);
     }
   },
@@ -405,21 +432,35 @@ export const moodService = {
   async getUserMoodHistory(userId, days = 30) {
     try {
       const moodsRef = collection(db, 'moods');
+      
+      // Consulta simples sem filtros complexos para evitar problemas de índice
       const q = query(
         moodsRef,
-        where('userId', '==', userId),
         orderBy('recordedAt', 'desc'),
         limit(days)
       );
+      
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Filtrar registros do usuário no lado do cliente
+      const userMoods = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(mood => mood.userId === userId);
+      
+      return userMoods;
+      
     } catch (error) {
+      // Se for erro de índice, usar array vazio
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando array vazio');
+        return [];
+      }
+      
       console.error('Erro ao buscar histórico de humor:', error);
-      throw error;
+      return [];
     }
   },
 
@@ -427,14 +468,19 @@ export const moodService = {
   async getMoodStats(userId, period = 'week') {
     try {
       const moodsRef = collection(db, 'moods');
+      
+      // Consulta simples sem filtros complexos para evitar problemas de índice
       const q = query(
         moodsRef,
-        where('userId', '==', userId),
         orderBy('recordedAt', 'desc')
       );
+      
       const querySnapshot = await getDocs(q);
       
-      const moods = querySnapshot.docs.map(doc => doc.data());
+      // Filtrar registros do usuário no lado do cliente
+      const userMoods = querySnapshot.docs
+        .map(doc => doc.data())
+        .filter(mood => mood.userId === userId);
       
       // Calcular estatísticas baseadas no período
       const now = new Date();
@@ -442,10 +488,10 @@ export const moodService = {
       
       if (period === 'week') {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        filteredMoods = moods.filter(mood => mood.recordedAt?.toDate() > weekAgo);
+        filteredMoods = userMoods.filter(mood => mood.recordedAt?.toDate() > weekAgo);
       } else if (period === 'month') {
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        filteredMoods = moods.filter(mood => mood.recordedAt?.toDate() > monthAgo);
+        filteredMoods = userMoods.filter(mood => mood.recordedAt?.toDate() > monthAgo);
       }
       
       // Calcular médias e tendências
@@ -458,9 +504,26 @@ export const moodService = {
         period,
         moods: filteredMoods
       };
+      
     } catch (error) {
+      // Se for erro de índice, usar dados vazios
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando dados vazios');
+        return {
+          totalEntries: 0,
+          averageMood: 0,
+          period,
+          moods: []
+        };
+      }
+      
       console.error('Erro ao calcular estatísticas de humor:', error);
-      throw error;
+      return {
+        totalEntries: 0,
+        averageMood: 0,
+        period,
+        moods: []
+      };
     }
   }
 };
@@ -489,24 +552,35 @@ export const notificationService = {
     try {
       // Tenta usar Firebase primeiro
       const notificationsRef = collection(db, 'notifications');
+      
+      // Consulta simples sem filtros complexos para evitar problemas de índice
       const q = query(
         notificationsRef,
-        where('recipientId', '==', userId),
         orderBy('createdAt', 'desc'),
         limit(limitCount)
       );
+      
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Filtrar notificações do usuário no lado do cliente
+      const userNotifications = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(notification => notification.recipientId === userId);
+      
+      return userNotifications;
+      
     } catch (error) {
-      console.warn('Firebase não disponível, usando dados mockados:', error);
-      // Retorna dados mockados se Firebase falhar
-      return mockNotifications
-        .filter(notification => notification.recipientId === userId)
-        .slice(0, limitCount);
+      // Se for erro de índice, usar array vazio
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando array vazio');
+        return [];
+      }
+      
+      console.error('Erro ao buscar notificações:', error);
+      return [];
     }
   },
 
@@ -518,7 +592,7 @@ export const notificationService = {
         read: true,
         readAt: serverTimestamp()
       });
-      return { success: true };
+      return true;
     } catch (error) {
       console.error('Erro ao marcar notificação como lida:', error);
       throw error;
@@ -529,15 +603,23 @@ export const notificationService = {
   async markAllNotificationsAsRead(userId) {
     try {
       const notificationsRef = collection(db, 'notifications');
+      
+      // Consulta simples sem filtros complexos para evitar problemas de índice
       const q = query(
         notificationsRef,
-        where('recipientId', '==', userId),
-        where('read', '==', false)
+        orderBy('createdAt', 'desc')
       );
-      const querySnapshot = await getDocs(q);
       
+      const querySnapshot = await getDocs(q);
       const batch = writeBatch(db);
-      querySnapshot.docs.forEach(doc => {
+      
+      // Filtrar notificações não lidas do usuário no lado do cliente
+      const unreadNotifications = querySnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.recipientId === userId && !data.read;
+      });
+      
+      unreadNotifications.forEach(doc => {
         batch.update(doc.ref, {
           read: true,
           readAt: serverTimestamp()
@@ -545,10 +627,123 @@ export const notificationService = {
       });
       
       await batch.commit();
-      return { success: true, updatedCount: querySnapshot.docs.length };
+      return true;
+      
     } catch (error) {
-      console.error('Erro ao marcar todas as notificações como lidas:', error);
+      // Se for erro de índice, usar array vazio
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando array vazio');
+        return true;
+      }
+      
+      console.error('Erro ao marcar todas como lidas:', error);
+      return false;
+    }
+  },
+
+  // Deletar notificação
+  async deleteNotification(notificationId) {
+    try {
+      const notificationRef = doc(db, 'notifications', notificationId);
+      await deleteDoc(notificationRef);
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar notificação:', error);
       throw error;
+    }
+  },
+
+  // Limpar todas as notificações do usuário
+  async clearAllNotifications(userId) {
+    try {
+      const notificationsRef = collection(db, 'notifications');
+      
+      // Consulta simples sem filtros complexos para evitar problemas de índice
+      const q = query(notificationsRef, orderBy('createdAt', 'desc'));
+      
+      const querySnapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      
+      // Filtrar notificações do usuário no lado do cliente
+      const userNotifications = querySnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.recipientId === userId;
+      });
+      
+      userNotifications.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+      return true;
+      
+    } catch (error) {
+      // Se for erro de índice, usar array vazio
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando array vazio');
+        return true;
+      }
+      
+      console.error('Erro ao limpar notificações:', error);
+      return false;
+    }
+  },
+
+  // Criar notificação de curtida
+  async createLikeNotification(postId, postAuthorId, likerId, likerName) {
+    if (postAuthorId === likerId) return; // Não notificar curtidas próprias
+    
+    try {
+      await this.createNotification({
+        type: 'like',
+        title: 'Curtida no seu post',
+        message: `${likerName} curtiu seu post`,
+        recipientId: postAuthorId,
+        senderId: likerId,
+        senderName: likerName,
+        postId: postId,
+        actionUrl: `/post/${postId}`
+      });
+    } catch (error) {
+      console.error('Erro ao criar notificação de curtida:', error);
+    }
+  },
+
+  // Criar notificação de comentário
+  async createCommentNotification(postId, postAuthorId, commenterId, commenterName, commentContent) {
+    if (postAuthorId === commenterId) return; // Não notificar comentários próprios
+    
+    try {
+      await this.createNotification({
+        type: 'comment',
+        title: 'Novo comentário',
+        message: `${commenterName} comentou: "${commentContent.substring(0, 50)}${commentContent.length > 50 ? '...' : ''}"`,
+        recipientId: postAuthorId,
+        senderId: commenterId,
+        senderName: commenterName,
+        postId: postId,
+        commentContent: commentContent,
+        actionUrl: `/post/${postId}`
+      });
+    } catch (error) {
+      console.error('Erro ao criar notificação de comentário:', error);
+    }
+  },
+
+  // Criar notificação de novo seguidor
+  async createFollowNotification(followerId, followerName, followedId) {
+    try {
+      await this.createNotification({
+        type: 'follow',
+        title: 'Novo seguidor',
+        message: `${followerName} começou a te seguir`,
+        recipientId: followedId,
+        senderId: followerId,
+        senderName: followerName,
+        actionUrl: `/user-profile/${followerId}`
+      });
+    } catch (error) {
+      console.error('Erro ao criar notificação de seguidor:', error);
     }
   }
 };
@@ -573,9 +768,30 @@ export const commentService = {
       
       // Atualizar contador de comentários no post
       const postRef = doc(db, 'posts', postId);
-      await updateDoc(postRef, {
-        commentCount: increment(1)
-      });
+      const postDoc = await getDoc(postRef);
+      
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        
+        await updateDoc(postRef, {
+          commentCount: increment(1)
+        });
+        
+        // Criar notificação de comentário (se não for o próprio autor)
+        if (postData.userId !== commentData.userId) {
+          try {
+            await notificationService.createCommentNotification(
+              postId,
+              postData.userId,
+              commentData.userId,
+              'Usuário', // TODO: Buscar nome real do usuário
+              commentData.content
+            );
+          } catch (error) {
+            console.warn('Erro ao criar notificação de comentário:', error);
+          }
+        }
+      }
       
       return { success: true, commentId: docRef.id };
     } catch (error) {
@@ -782,31 +998,37 @@ export const therapyService = {
   async getUserTherapySessions(userId, role = 'client') {
     try {
       const sessionsRef = collection(db, 'therapySessions');
-      let q;
       
-      if (role === 'client') {
-        q = query(
-          sessionsRef,
-          where('clientId', '==', userId),
-          orderBy('scheduledAt', 'desc')
-        );
-      } else {
-        q = query(
-          sessionsRef,
-          where('therapistId', '==', userId),
-          orderBy('scheduledAt', 'desc')
-        );
-      }
+      // Consulta simples sem filtros complexos para evitar problemas de índice
+      const q = query(
+        sessionsRef,
+        orderBy('scheduledAt', 'desc')
+      );
       
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      // Filtrar sessões do usuário no lado do cliente
+      const userSessions = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(session => 
+          (role === 'client' && session.clientId === userId) ||
+          (role === 'therapist' && session.therapistId === userId)
+        );
+      
+      return userSessions;
+      
     } catch (error) {
+      // Se for erro de índice, usar array vazio
+      if (error.code === 'failed-precondition' || error.code === 'unimplemented') {
+        console.warn('Índice não configurado no Firestore, usando array vazio');
+        return [];
+      }
+      
       console.error('Erro ao buscar sessões de terapia:', error);
-      throw error;
+      return [];
     }
   },
 

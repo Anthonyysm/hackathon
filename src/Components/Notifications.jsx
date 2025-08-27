@@ -1,394 +1,203 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Bell, 
-  Heart, 
-  MessageCircle, 
-  UserPlus, 
-  Eye, 
-  Trash2, 
-  Check, 
-  X, 
-  Settings
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, Check, Trash2, X, MessageCircle, Heart, UserPlus, Calendar, BookOpen } from 'lucide-react';
+import { useNotifications } from '../hooks/useNotifications';
 
 const Notifications = () => {
-  const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState({ uid: 'current-user', displayName: 'Usuário Atual' });
-  const [filter, setFilter] = useState('all'); // all, unread, likes, comments, follows
-  const [showSettings, setShowSettings] = useState(false);
+  const { 
+    notifications, 
+    unreadCount, 
+    loading, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification, 
+    clearAllNotifications 
+  } = useNotifications();
+  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Mock notifications data
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'like',
-      title: 'Curtida no seu post',
-      message: 'Maria Silva curtiu seu post sobre ansiedade e bem-estar',
-      avatar: null,
-      userName: 'Maria Silva',
-      userId: 'user123',
-      createdAt: new Date(Date.now() - 15 * 60 * 1000), // 15 min atrás
-      read: false,
-      postId: 'post123',
-      icon: Heart,
-      iconColor: 'text-white'
-    },
-    {
-      id: 2,
-      type: 'comment',
-      title: 'Novo comentário',
-      message: 'Carlos Santos comentou em seu post: "Muito inspirador! Obrigado por compartilhar."',
-      avatar: null,
-      userName: 'Carlos Santos',
-      userId: 'user456',
-      createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1h atrás
-      read: false,
-      postId: 'post123',
-      icon: MessageCircle,
-      iconColor: 'text-white'
-    },
-    {
-      id: 3,
-      type: 'follow',
-      title: 'Novo seguidor',
-      message: 'Ana Costa começou a te seguir',
-      avatar: null,
-      userName: 'Ana Costa',
-      userId: 'user789',
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2h atrás
-      read: true,
-      icon: UserPlus,
-      iconColor: 'text-white'
-    },
-    {
-      id: 4,
-      type: 'group',
-      title: 'Atividade no grupo',
-      message: 'Novo post no grupo "Ansiedade e Bem-estar" que você participa',
-      avatar: null,
-      userName: 'Dr. João Silva',
-      userId: 'user101',
-      createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3h atrás
-      read: true,
-      groupId: 'group123',
-      groupName: 'Ansiedade e Bem-estar',
-      icon: Bell,
-      iconColor: 'text-white'
-    },
-    {
-      id: 5,
-      type: 'session',
-      title: 'Lembrete de sessão',
-      message: 'Sua sessão de terapia está agendada para hoje às 15:00',
-      avatar: null,
-      userName: 'Dra. Laura Santos',
-      userId: 'therapist123',
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4h atrás
-      read: false,
-      sessionId: 'session123',
-      icon: Bell,
-      iconColor: 'text-white'
-    },
-    {
-      id: 6,
-      type: 'mood',
-      title: 'Registro de humor',
-      message: 'Não se esqueça de registrar como você está se sentindo hoje',
-      avatar: null,
-      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6h atrás
-      read: true,
-      icon: Heart,
-      iconColor: 'text-white'
-    }
-  ];
-
-  useEffect(() => {
-    // Simular carregamento de notificações
-    setTimeout(() => {
-      setNotifications(mockNotifications);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const markAsRead = useCallback(async (notificationId) => {
-    try {
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, read: true }
-            : notif
-        )
-      );
-    } catch (error) {
-      console.error('Erro ao marcar como lida:', error);
-    }
-  }, []);
-
-  const markAllAsRead = useCallback(async () => {
-    try {
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
-      );
-    } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
-    }
-  }, []);
-
-  const deleteNotification = useCallback(async (notificationId) => {
-    try {
-      setNotifications(prev => 
-        prev.filter(notif => notif.id !== notificationId)
-      );
-    } catch (error) {
-      console.error('Erro ao deletar notificação:', error);
-    }
-  }, []);
-
-  const clearAllNotifications = useCallback(async () => {
-    try {
-      setNotifications([]);
-    } catch (error) {
-      console.error('Erro ao limpar notificações:', error);
-    }
-  }, []);
-
-  const formatTimeAgo = (date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}m`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}h`;
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}d`;
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'like':
+        return { icon: Heart, color: 'text-red-400' };
+      case 'comment':
+        return { icon: MessageCircle, color: 'text-blue-400' };
+      case 'follow':
+        return { icon: UserPlus, color: 'text-green-400' };
+      case 'session':
+        return { icon: Calendar, color: 'text-yellow-400' };
+      case 'mood':
+        return { icon: Heart, color: 'text-pink-400' };
+      case 'diary':
+        return { icon: BookOpen, color: 'text-purple-400' };
+      case 'welcome':
+        return { icon: Bell, color: 'text-blue-400' };
+      default:
+        return { icon: Bell, color: 'text-gray-400' };
     }
   };
 
-  const filteredNotifications = notifications.filter(notif => {
-    switch (filter) {
-      case 'unread':
-        return !notif.read;
-      case 'likes':
-        return notif.type === 'like';
-      case 'comments':
-        return notif.type === 'comment';
-      case 'follows':
-        return notif.type === 'follow';
-      default:
-        return true;
-    }
-  });
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const formatTime = (timestamp) => {
+    if (!timestamp) return 'Agora mesmo';
+    
+    const now = new Date();
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Agora mesmo';
+    if (diffInMinutes < 60) return `${diffInMinutes}m atrás`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h atrás`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d atrás`;
+    
+    return date.toLocaleDateString('pt-BR');
+  };
 
   if (loading) {
     return (
-      <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-        <div className="flex items-center justify-center py-12">
-          <div className="loading-spinner"></div>
-          <span className="ml-3 text-white/70">Carregando notificações...</span>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="loading-spinner"></div>
+        <span className="ml-3 text-white/70">Carregando notificações...</span>
       </div>
     );
   }
 
+  if (notifications.length === 0) {
     return (
-    <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <Bell className="w-16 h-16 text-white/30 mb-4" />
+        <h3 className="text-xl font-semibold text-white/70 mb-2">Nenhuma notificação</h3>
+        <p className="text-white/50">Você está em dia com tudo!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <Bell className="w-6 h-6 text-gray-400" />
-            <h2 className="text-xl font-semibold text-white">Notificações</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Bell className="w-6 h-6 text-white" />
+          <h2 className="text-xl font-semibold text-white">
+            Notificações
             {unreadCount > 0 && (
-              <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+              <span className="ml-2 px-2 py-1 bg-red-500 text-white text-sm rounded-full">
                 {unreadCount}
               </span>
             )}
-          </div>
+          </h2>
         </div>
-
-        {/* Filters */}
-        <div className="flex space-x-1 bg-white/5 rounded-lg p-1 mb-4">
-          {[
-            { id: 'all', name: 'Todas', icon: Bell },
-            { id: 'unread', name: 'Não Lidas', icon: Eye },
-            { id: 'likes', name: 'Curtidas', icon: Heart },
-            { id: 'comments', name: 'Comentários', icon: MessageCircle },
-            { id: 'follows', name: 'Seguidores', icon: UserPlus }
-          ].map((filterOption) => {
-            const IconComponent = filterOption.icon;
-            return (
-              <button
-                key={filterOption.id}
-                onClick={() => setFilter(filterOption.id)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
-                  filter === filterOption.id
-                    ? 'bg-white text-black'
-                    : 'text-white/70 hover:text-white'
-                }`}
-              >
-                <IconComponent className="w-4 h-4" />
-                <span>{filterOption.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-                    {/* Actions */}
-        <div className="flex justify-end gap-2">
+        
+        <div className="flex items-center space-x-2">
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors flex items-center space-x-1"
+              className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg text-blue-400 transition-colors flex items-center space-x-2"
             >
               <Check className="w-4 h-4" />
-              <span>Marcar Todas</span>
+              <span>Marcar todas como lidas</span>
             </button>
           )}
           
-          {notifications.length > 0 && (
-            <button
-              onClick={clearAllNotifications}
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors flex items-center space-x-1"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Limpar</span>
-            </button>
-          )}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg text-red-400 transition-colors flex items-center space-x-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Limpar todas</span>
+          </button>
         </div>
       </div>
 
-              {/* Notifications List */}
-      <div className="space-y-4">
-        {filteredNotifications.length > 0 ? (
-          filteredNotifications.map((notification) => {
-            const IconComponent = notification.icon;
-            
-            return (
-              <div
-                key={notification.id}
-                className={`bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl hover:bg-white/15 transition-all duration-200 ${
-                  !notification.read ? 'border-blue-500/30' : ''
-                }`}
-              >
-                  <div className="flex items-start space-x-4">
-                    {/* Icon */}
-                    <div className={`w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0 ${notification.iconColor}`}>
-                      <IconComponent className="w-5 h-5" />
-                  </div>
-                  
-                    {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                          <h3 className="text-white font-medium text-sm">
-                            {notification.title}
-                          </h3>
-                          <p className="text-white/70 text-sm mt-1 leading-relaxed">
-                            {notification.message}
-                          </p>
-                          
-                          <div className="flex items-center space-x-3 mt-3 text-xs text-white/50">
-                            <span>{formatTimeAgo(notification.createdAt)}</span>
-                            {notification.userName && (
-                              <span>• {notification.userName}</span>
-                            )}
-                            {notification.groupName && (
-                              <span>• {notification.groupName}</span>
-                            )}
-                          </div>
-                      </div>
-                      
-                        {/* Actions */}
-                      <div className="flex items-center space-x-2 ml-4">
-                        {!notification.read && (
-                          <button
-                              onClick={() => markAsRead(notification.id)}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            title="Marcar como lida"
-                          >
-                              <Eye className="w-4 h-4 text-white/50 hover:text-white/70" />
-                          </button>
-                        )}
-                        
+      {/* Notifications List */}
+      <div className="space-y-3">
+        {notifications.map((notification) => {
+          const { icon: Icon, color } = getNotificationIcon(notification.type);
+          
+          return (
+            <div
+              key={notification.id}
+              className={`p-4 rounded-lg border transition-all ${
+                notification.read
+                  ? 'bg-white/5 border-white/10 text-white/70'
+                  : 'bg-blue-500/10 border-blue-500/30 text-white'
+              }`}
+            >
+              <div className="flex items-start space-x-3">
+                <div className={`p-2 rounded-lg bg-white/10 ${color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium mb-1">{notification.title}</p>
+                      <p className="text-sm opacity-80 mb-2">{notification.message}</p>
+                      <span className="text-xs opacity-60">{formatTime(notification.createdAt)}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 ml-3">
+                      {!notification.read && (
                         <button
-                            onClick={() => deleteNotification(notification.id)}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            title="Deletar notificação"
-                          >
-                            <Trash2 className="w-4 h-4 text-white/50 hover:text-red-400" />
+                          onClick={() => markAsRead(notification.id)}
+                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                          title="Marcar como lida"
+                        >
+                          <Check className="w-4 h-4" />
                         </button>
-                        </div>
-                      </div>
+                      )}
+                      
+                      <button
+                        onClick={() => deleteNotification(notification.id)}
+                        className="p-1 hover:bg-red-500/20 rounded transition-colors text-red-400"
+                        title="Deletar notificação"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            /* Empty State */
-            <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-12 shadow-2xl text-center">
-              <div className="text-6xl mb-4">🔔</div>
-              <h3 className="text-xl font-medium text-white mb-2">
-                Nenhuma notificação
-              </h3>
-              <p className="text-white/70 mb-6">
-                {filter === 'all' 
-                  ? 'Você não tem notificações no momento'
-                  : `Nenhuma notificação encontrada para o filtro "${filter}"`
-                }
-              </p>
-              {filter !== 'all' && (
-                <button
-                  onClick={() => setFilter('all')}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  Ver Todas as Notificações
-                </button>
-              )}
-          </div>
-        )}
-        </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-white mb-6">Configurações de Notificação</h3>
-              
-              <div className="space-y-4">
-              {[
-                { key: 'likes', label: 'Curtidas em posts', description: 'Notificar quando alguém curtir seus posts' },
-                { key: 'comments', label: 'Comentários', description: 'Notificar sobre novos comentários' },
-                { key: 'follows', label: 'Novos seguidores', description: 'Notificar quando alguém te seguir' },
-                { key: 'groups', label: 'Atividade em grupos', description: 'Notificar sobre atividades nos grupos' },
-                { key: 'sessions', label: 'Lembretes de sessão', description: 'Lembrar sobre sessões agendadas' },
-                { key: 'mood', label: 'Lembretes de humor', description: 'Lembrar de registrar humor diário' }
-              ].map((setting) => (
-                <div key={setting.key} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                  <div>
-                    <h4 className="text-white font-medium">{setting.label}</h4>
-                    <p className="text-white/60 text-sm">{setting.description}</p>
-                </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      defaultChecked={true}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              ))}
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Limpar todas as notificações?
+            </h3>
+            <p className="text-white/70 mb-6">
+              Esta ação não pode ser desfeita. Todas as notificações serão removidas permanentemente.
+            </p>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  clearAllNotifications();
+                  setShowDeleteConfirm(false);
+                }}
+                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              >
+                Limpar todas
+              </button>
             </div>
           </div>
-        )}
-      </div>
-    );
-  };
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default Notifications;

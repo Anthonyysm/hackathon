@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosts } from '../hooks/usePosts';
+import { useImages } from '../hooks/useImages';
 import { Edit3, Plus, FileText, User, Calendar, Phone, AtSign, Camera, Image, X, Save, Trash2, Eye, EyeOff } from 'lucide-react';
 import PostCreation from './PostCreation';
+import { profileImageService } from '../services/profileImageService';
+import { postService } from '../services/firebaseService';
 
 const Profile = () => {
   const { user, loading } = useAuth();
-  const { posts, createPost, deletePost } = usePosts();
+  const { createPost, deletePost } = usePosts(); // Removido posts e loading do usePosts
   const [editing, setEditing] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [userPosts, setUserPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [editForm, setEditForm] = useState({
     displayName: '',
     username: '',
@@ -17,20 +21,44 @@ const Profile = () => {
     phone: '',
     birthDate: ''
   });
+  
+  // Refs para os inputs de arquivo
+  const profilePhotoInputRef = useRef(null);
+  const bannerPhotoInputRef = useRef(null);
+  
+  // Estados para preview das imagens
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
+  const [bannerPhotoPreview, setBannerPhotoPreview] = useState(null);
+  
+  // Hook para gerenciar imagens do Firestore
+  const { 
+    profilePhoto: profilePhotoData, 
+    bannerPhoto: bannerPhotoData, 
+    loading: imagesLoading,
+    loadUserImages, 
+    updateImage 
+  } = useImages(user?.uid);
 
   // Filtrar posts do usuário (apenas posts públicos aparecem no perfil)
   useEffect(() => {
-    if (posts && user) {
-      const filteredPosts = posts.filter(post => 
-        post.userId === user.uid && 
-        !post.isAnonymous && 
-        post.visibility === 'public'
-      );
-      setUserPosts(filteredPosts);
+    if (user) {
+      const fetchUserPosts = async () => {
+        setPostsLoading(true);
+        try {
+          const posts = await postService.getUserPosts(user.uid);
+          setUserPosts(posts);
+        } catch (error) {
+          console.error('Erro ao buscar posts do usuário:', error);
+          alert('Erro ao carregar posts do perfil. Tente novamente.');
+        } finally {
+          setPostsLoading(false);
+        }
+      };
+      fetchUserPosts();
     }
-  }, [posts, user]);
+  }, [user]);
 
-  // Inicializar formulário de edição
+  // Inicializar formulário de edição e carregar imagens
   useEffect(() => {
     if (user) {
       setEditForm({
@@ -40,8 +68,11 @@ const Profile = () => {
         phone: user.profileData?.phone || '',
         birthDate: user.profileData?.birthDate || ''
       });
+      
+      // Carregar imagens do Firestore se existirem
+      loadUserImages(user.profileData);
     }
-  }, [user]);
+  }, [user, loadUserImages]);
 
   const handleEditProfile = () => {
     setEditing(true);
@@ -49,13 +80,56 @@ const Profile = () => {
 
   const handleSaveProfile = async () => {
     try {
-      // TODO: Implementar atualização do perfil no Firebase
       console.log('Salvando perfil:', editForm);
-      setEditing(false);
-      // Atualizar dados locais
+      
+      // Processar substituição de imagens se necessário
+      if (profilePhotoPreview || bannerPhotoPreview) {
+        console.log('Processando novas imagens...');
+        
+        // Substituir foto de perfil se há nova
+        if (profilePhotoPreview) {
+          try {
+            const currentProfilePhotoId = user?.profileData?.profilePhotoId;
+            await updateImage(profilePhotoPreview, 'profilePhoto', currentProfilePhotoId);
+            console.log('Foto de perfil substituída');
+            
+            // Atualizar ID no formulário para salvar no perfil
+            editForm.profilePhotoId = currentProfilePhotoId;
+          } catch (error) {
+            console.error('Erro ao substituir foto de perfil:', error);
+            alert('Erro ao atualizar foto de perfil. Tente novamente.');
+            return;
+          }
+        }
+        
+        // Substituir banner se há novo
+        if (bannerPhotoPreview) {
+          try {
+            const currentBannerId = user?.profileData?.bannerPhotoId;
+            await updateImage(bannerPhotoPreview, 'bannerPhoto', currentBannerId);
+            console.log('Banner substituído');
+            
+            // Atualizar ID no formulário para salvar no perfil
+            editForm.bannerPhotoId = currentBannerId;
+          } catch (error) {
+            console.error('Erro ao substituir banner:', error);
+            alert('Erro ao substituir banner. Tente novamente.');
+            return;
+          }
+        }
+      }
+      
+      // TODO: Implementar atualização dos outros campos do perfil
       // await updateUserProfile(editForm);
+      
+      setEditing(false);
+      // Limpar previews
+      setProfilePhotoPreview(null);
+      setBannerPhotoPreview(null);
+      
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
+      alert('Erro ao salvar perfil. Tente novamente.');
     }
   };
 
@@ -68,6 +142,67 @@ const Profile = () => {
       birthDate: user?.profileData?.birthDate || ''
     });
     setEditing(false);
+    // Limpar previews das imagens
+    setProfilePhotoPreview(null);
+    setBannerPhotoPreview(null);
+    // Recarregar imagens originais do Firestore
+    loadUserImages(user.profileData);
+  };
+
+  const handleProfilePhotoChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione apenas arquivos de imagem.');
+        return;
+      }
+      
+      // Validar tamanho (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 5MB.');
+        return;
+      }
+      
+      // Criar preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfilePhotoPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerPhotoChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione apenas arquivos de imagem.');
+        return;
+      }
+      
+      // Validar tamanho (máximo 10MB para banner)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('A imagem do banner deve ter no máximo 10MB.');
+        return;
+      }
+      
+      // Criar preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBannerPhotoPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerProfilePhotoInput = () => {
+    profilePhotoInputRef.current?.click();
+  };
+
+  const triggerBannerPhotoInput = () => {
+    bannerPhotoInputRef.current?.click();
   };
 
   const handleCreatePost = () => {
@@ -76,10 +211,28 @@ const Profile = () => {
 
   const handlePostCreated = async (postData) => {
     try {
-      const success = await createPost(postData);
-      if (success) {
+      const result = await createPost(postData);
+      if (result) {
         setShowCreatePost(false);
-        // O post será automaticamente adicionado ao estado através do hook usePosts
+        
+        // Buscar o post recém-criado do Firebase para obter o ID real
+        try {
+          const userPosts = await postService.getUserPosts(user.uid);
+          setUserPosts(userPosts);
+        } catch (error) {
+          console.error('Erro ao atualizar lista de posts:', error);
+          // Fallback: adicionar post localmente com ID temporário
+          const newPost = {
+            id: Date.now().toString(),
+            ...postData,
+            createdAt: new Date(),
+            likes: [],
+            commentCount: 0,
+            shares: 0,
+            isEdited: false
+          };
+          setUserPosts(prev => [newPost, ...prev]);
+        }
       }
     } catch (error) {
       console.error('Erro ao criar post:', error);
@@ -91,7 +244,8 @@ const Profile = () => {
       try {
         const success = await deletePost(postId);
         if (success) {
-          // O post será automaticamente removido do estado através do hook usePosts
+          // Remover o post do estado local do perfil
+          setUserPosts(prev => prev.filter(post => post.id !== postId));
         }
       } catch (error) {
         console.error('Erro ao deletar post:', error);
@@ -101,21 +255,65 @@ const Profile = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Data não disponível';
+    
     try {
-      return new Date(dateString).toLocaleDateString('pt-BR', {
+      let date;
+      
+      // Converter Firestore Timestamp para Date se necessário
+      if (dateString && typeof dateString === 'object' && dateString.toDate) {
+        // É um Firestore Timestamp
+        date = dateString.toDate();
+      } else if (dateString instanceof Date) {
+        // Já é um Date
+        date = dateString;
+      } else if (typeof dateString === 'string' || typeof dateString === 'number') {
+        // É uma string ou número, tentar converter para Date
+        date = new Date(dateString);
+      } else {
+        return 'Data inválida';
+      }
+      
+      // Verificar se a data é válida
+      if (isNaN(date.getTime())) {
+        return 'Data inválida';
+      }
+      
+      return date.toLocaleDateString('pt-BR', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       });
-    } catch {
+    } catch (error) {
+      console.error('Erro ao formatar data:', error);
       return 'Data inválida';
     }
   };
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '';
+    
+    // Converter Firestore Timestamp para Date se necessário
+    let date;
+    if (timestamp && typeof timestamp === 'object' && timestamp.toDate) {
+      // É um Firestore Timestamp
+      date = timestamp.toDate();
+    } else if (timestamp instanceof Date) {
+      // Já é um Date
+      date = timestamp;
+    } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+      // É uma string ou número, tentar converter para Date
+      date = new Date(timestamp);
+    } else {
+      return 'Data inválida';
+    }
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+      return 'Data inválida';
+    }
+    
     const now = new Date();
-    const diff = now - timestamp;
+    const diff = now - date;
     const minutes = Math.floor(diff / (1000 * 60));
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -124,11 +322,11 @@ const Profile = () => {
     if (minutes < 60) return `${minutes}m atrás`;
     if (hours < 24) return `${hours}h atrás`;
     if (days < 7) return `${days}d atrás`;
-    return timestamp.toLocaleDateString('pt-BR');
+    return date.toLocaleDateString('pt-BR');
   };
 
   // Loading state
-  if (loading) {
+  if (loading || imagesLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="loading-spinner"></div>
@@ -156,23 +354,34 @@ const Profile = () => {
     <div className="min-h-screen bg-black relative">
       {/* Banner Image */}
       <div className="relative h-64 bg-gradient-to-r from-blue-600 to-purple-600">
-        {user?.profileData?.bannerPhotoURL && (
+        {(bannerPhotoPreview || bannerPhotoData) && (
           <img 
-            src={user.profileData.bannerPhotoURL} 
+            src={bannerPhotoPreview || bannerPhotoData} 
             alt="Banner" 
             className="w-full h-full object-cover"
           />
         )}
         <div className="absolute inset-0 bg-black/20"></div>
+        
+        {/* Botão de edição do banner */}
+        {editing && (
+          <button 
+            onClick={triggerBannerPhotoInput}
+            className="absolute top-4 right-4 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors flex items-center space-x-2"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Alterar Banner</span>
+          </button>
+        )}
       </div>
 
       {/* Profile Photo */}
       <div className="relative -mt-20 px-8">
         <div className="relative">
           <div className="w-40 h-40 rounded-full border-4 border-white bg-white/10 flex items-center justify-center overflow-hidden">
-            {user?.profileData?.profilePhotoURL ? (
+            {(profilePhotoPreview || profilePhotoData) ? (
               <img 
-                src={user.profileData.profilePhotoURL} 
+                src={profilePhotoPreview || profilePhotoData} 
                 alt="Foto de perfil" 
                 className="w-full h-full object-cover"
               />
@@ -181,9 +390,13 @@ const Profile = () => {
             )}
           </div>
           
+          {/* Botão de edição da foto de perfil */}
           {editing && (
-            <button className="absolute bottom-2 right-2 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-              <Camera className="w-5 h-5 text-white" />
+            <button 
+              onClick={triggerProfilePhotoInput}
+              className="absolute bottom-2 right-2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+            >
+              <Camera className="w-6 h-6 text-white" />
             </button>
           )}
         </div>
@@ -334,7 +547,12 @@ const Profile = () => {
           </button>
         </div>
         
-        {userPosts.length === 0 ? (
+        {postsLoading ? (
+          <div className="text-center py-16">
+            <div className="loading-spinner"></div>
+            <p className="text-white/60 mt-4">Carregando posts...</p>
+          </div>
+        ) : userPosts.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-12 h-12 text-white/30" />
@@ -421,6 +639,22 @@ const Profile = () => {
           </div>
         </div>
       )}
+
+      {/* Hidden file inputs */}
+      <input
+        ref={profilePhotoInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleProfilePhotoChange}
+        className="hidden"
+      />
+      <input
+        ref={bannerPhotoInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleBannerPhotoChange}
+        className="hidden"
+      />
     </div>
   );
 };
