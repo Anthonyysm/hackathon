@@ -18,8 +18,6 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { doc, getDoc, updateDoc, collection, query, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const CommunityGroup = () => {
   const { groupId } = useParams();

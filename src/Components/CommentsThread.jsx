@@ -1,243 +1,340 @@
-import React, { useEffect, useState } from 'react';
-import { Heart, MessageCircle, Send, Trash2, Smile, MoreVertical, EyeOff, MessageSquare } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, deleteDoc, increment, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState, useRef } from 'react';
+import { Heart, Send, Trash2, MoreVertical, EyeOff, Reply, Edit3, Flag, User } from 'lucide-react';
 
 const CommentsThread = ({ postId }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [likedComments, setLikedComments] = useState(new Set());
   const [showMenuFor, setShowMenuFor] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [editingComment, setEditingComment] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [user, setUser] = useState({ uid: 'current-user', displayName: 'Usuário Atual' });
+  const commentInputRef = useRef(null);
+
+  // Mock comments data
+  const mockComments = [
+    {
+      id: 1,
+      content: "Muito inspirador! Parabéns pela conquista! 👏",
+      author: "Ana Costa",
+      authorId: "user123",
+      avatar: null,
+      timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 min atrás
+      likes: 5,
+      isAnonymous: false,
+      replies: []
+    },
+    {
+      id: 2,
+      content: "Passei por algo similar. A terapia realmente ajuda muito!",
+      author: "Anônimo",
+      authorId: "user456",
+      avatar: null,
+      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1h atrás
+      likes: 3,
+      isAnonymous: true,
+      replies: [
+        {
+          id: 3,
+          content: "Concordo! E ter esse espaço para compartilhar é fundamental.",
+          author: "Carlos Silva",
+          authorId: "user789",
+          avatar: null,
+          timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 min atrás
+          likes: 2,
+          isAnonymous: false
+        }
+      ]
+    }
+  ];
 
   useEffect(() => {
-    if (!postId) return;
-    const q = query(collection(db, 'posts', postId, 'comments'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setComments(items);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    // Simular carregamento de comentários
+    setComments(mockComments);
   }, [postId]);
 
-  const handleAddComment = async () => {
-    const user = auth.currentUser;
-    if (!user || !newComment.trim()) return;
-    try {
-      await addDoc(collection(db, 'posts', postId, 'comments'), {
-        userId: user.uid,
-        authorName: user.displayName || 'Usuário',
-        authorAvatar: user.photoURL || null,
-        content: newComment.trim(),
-        likes: 0,
-        createdAt: serverTimestamp(),
-      });
-      setNewComment('');
-      // Optionally bump post comment count
-      try { await updateDoc(doc(db, 'posts', postId), { comments: increment(1) }); } catch {}
-    } catch (e) {
-      // no-op
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes}m`;
+    } else if (diffInMinutes < 1440) {
+      return `${Math.floor(diffInMinutes / 60)}h`;
+    } else {
+      return `${Math.floor(diffInMinutes / 1440)}d`;
     }
   };
 
-  const handleDelete = async (comment) => {
-    const user = auth.currentUser;
-    if (!user || user.uid !== comment.userId) return;
-    try {
-      await deleteDoc(doc(db, 'posts', postId, 'comments', comment.id));
-      try { await updateDoc(doc(db, 'posts', postId), { comments: increment(-1) }); } catch {}
-    } catch (e) {
-      // no-op
+  const handleSubmitComment = (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    const comment = {
+      id: Date.now(),
+      content: newComment,
+      author: user.displayName || 'Usuário',
+      authorId: user.uid,
+      avatar: null,
+      timestamp: new Date(),
+      likes: 0,
+      isAnonymous: false,
+      replies: []
+    };
+
+    if (replyingTo) {
+      setComments(prev => prev.map(c => 
+        c.id === replyingTo 
+          ? { ...c, replies: [...c.replies, comment] }
+          : c
+      ));
+      setReplyingTo(null);
+    } else {
+      setComments(prev => [comment, ...prev]);
     }
+
+    setNewComment('');
   };
 
-  const handleLikeComment = async (comment) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const commentId = comment.id;
-    const isLiked = likedComments.has(commentId);
-
-    if (isLiked) {
-      // Remove like
-      setLikedComments(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(commentId);
-        return newSet;
-      });
-      
-      // Update comment likes count
-      setComments(prev => 
-        prev.map(c => 
-          c.id === commentId 
-            ? { ...c, likes: Math.max(0, (c.likes || 0) - 1) }
+  const handleLikeComment = (commentId, isReply = false, parentId = null) => {
+    const newLikedComments = new Set(likedComments);
+    
+    if (likedComments.has(commentId)) {
+      newLikedComments.delete(commentId);
+      // Decrementar like
+      if (isReply) {
+        setComments(prev => prev.map(c => 
+          c.id === parentId 
+            ? { 
+                ...c, 
+                replies: c.replies.map(r => 
+                  r.id === commentId ? { ...r, likes: r.likes - 1 } : r
+                ) 
+              }
             : c
-        )
-      );
-
-      // Update Firebase
-      try {
-        await updateDoc(doc(db, 'posts', postId, 'comments', commentId), {
-          likes: increment(-1)
-        });
-      } catch (e) {
-        console.error('Erro ao remover like:', e);
+        ));
+      } else {
+        setComments(prev => prev.map(c => 
+          c.id === commentId ? { ...c, likes: c.likes - 1 } : c
+        ));
       }
     } else {
-      // Add like
-      setLikedComments(prev => new Set(prev).add(commentId));
-      
-      // Update comment likes count
-      setComments(prev => 
-        prev.map(c => 
-          c.id === commentId 
-            ? { ...c, likes: (c.likes || 0) + 1 }
+      newLikedComments.add(commentId);
+      // Incrementar like
+      if (isReply) {
+        setComments(prev => prev.map(c => 
+          c.id === parentId 
+            ? { 
+                ...c, 
+                replies: c.replies.map(r => 
+                  r.id === commentId ? { ...r, likes: r.likes + 1 } : r
+                ) 
+              }
             : c
-        )
-      );
-
-      // Update Firebase
-      try {
-        await updateDoc(doc(db, 'posts', postId, 'comments', commentId), {
-          likes: increment(1)
-        });
-      } catch (e) {
-        console.error('Erro ao adicionar like:', e);
+        ));
+      } else {
+        setComments(prev => prev.map(c => 
+          c.id === commentId ? { ...c, likes: c.likes + 1 } : c
+        ));
       }
+    }
+    
+    setLikedComments(newLikedComments);
+  };
+
+  const handleDeleteComment = (commentId, isReply = false, parentId = null) => {
+    if (isReply) {
+      setComments(prev => prev.map(c => 
+        c.id === parentId 
+          ? { ...c, replies: c.replies.filter(r => r.id !== commentId) }
+          : c
+      ));
+    } else {
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    }
+    setShowMenuFor(null);
+  };
+
+  const handleReply = (commentId) => {
+    setReplyingTo(commentId);
+    setNewComment('');
+    if (commentInputRef.current) {
+      commentInputRef.current.focus();
     }
   };
 
-  const handleHideComment = (commentId) => {
-    // TODO: Implement hide comment functionality
-    console.log('Ocultar comentário:', commentId);
-    setShowMenuFor(null);
-  };
-
-  const handleStartConversation = (comment) => {
-    // TODO: Implement start conversation functionality
-    console.log('Iniciar conversa com:', comment.authorName);
-    setShowMenuFor(null);
-  };
-
-  const toggleMenu = (commentId) => {
-    setShowMenuFor(showMenuFor === commentId ? null : commentId);
-  };
-
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-      <h3 className="text-xl font-light mb-6">Comentários ({comments.length})</h3>
-
-      {/* Form */}
-      <div className="bg-white/5 border border-white/20 rounded-xl p-4 mb-6">
-        <textarea
-          placeholder="Adicione um comentário..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          rows={3}
-          className="w-full bg-transparent border-none text-white placeholder-white/50 focus:outline-none resize-none"
-        />
-        <div className="flex items-center justify-between mt-3">
-          <button className="text-white/50 hover:text-white p-2" type="button">
-            <Smile className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleAddComment}
-            disabled={!newComment.trim()}
-            className="bg-white text-black px-4 py-2 rounded-lg font-light hover:bg-white/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send className="w-4 h-4 inline mr-2" />
-            Comentar
-          </button>
+  const renderComment = (comment, isReply = false, parentId = null) => (
+    <div key={comment.id} className={`${isReply ? 'ml-12 mt-3' : 'mb-4'}`}>
+      <div className="flex space-x-3">
+        <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+          {comment.avatar ? (
+            <img
+              src={comment.avatar}
+              alt={comment.author}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User className="w-4 h-4 text-white/70" />
+          )}
         </div>
-      </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="text-center text-white/50 py-8">Carregando comentários...</div>
-      ) : comments.length === 0 ? (
-        <div className="text-center text-white/50 py-8">Nenhum comentário ainda. Seja o primeiro!</div>
-      ) : (
-        <div className="space-y-4">
-          {comments.map((c) => (
-            <div key={c.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <div className="flex space-x-3">
-                <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                  {c.authorAvatar ? (
-                    <img src={c.authorAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <span className="text-white text-sm font-medium">
-                      {c.authorName?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-white">{c.authorName || 'Usuário'}</span>
-                    <div className="flex items-center space-x-2">
-                      {/* Like Button */}
-                      <button 
-                        onClick={() => handleLikeComment(c)}
-                        className={`flex items-center space-x-1 transition-all duration-200 ${
-                          likedComments.has(c.id) 
-                            ? 'text-white' 
-                            : 'text-white/60 hover:text-white'
-                        }`}
-                      >
-                        <Heart className={`w-4 h-4 ${likedComments.has(c.id) ? 'fill-current' : ''}`} />
-                        <span className="text-sm">{c.likes || 0}</span>
-                      </button>
-                      
-                      {/* Menu Button */}
-                      <div className="relative">
-                        <button 
-                          onClick={() => toggleMenu(c.id)}
-                          className="text-white/60 hover:text-white p-1 rounded-full hover:bg-white/10 transition-all duration-200"
+        <div className="flex-1">
+          <div className="bg-white/5 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <span className="font-medium text-white text-sm">
+                  {comment.isAnonymous ? 'Anônimo' : comment.author}
+                </span>
+                {comment.isAnonymous && (
+                  <EyeOff className="w-3 h-3 text-white/50" />
+                )}
+                <span className="text-white/50 text-xs">
+                  {formatTimeAgo(comment.timestamp)}
+                </span>
+              </div>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenuFor(showMenuFor === comment.id ? null : comment.id)}
+                  className="p-1 hover:bg-white/10 rounded transition-colors"
+                >
+                  <MoreVertical className="w-3 h-3 text-white/50" />
+                </button>
+
+                {showMenuFor === comment.id && (
+                  <div className="absolute right-0 top-full mt-1 w-32 bg-black/90 border border-white/10 rounded-lg shadow-lg py-1 z-50">
+                    {user?.uid === comment.authorId && (
+                      <>
+                        <button
+                          onClick={() => setShowMenuFor(null)}
+                          className="w-full px-3 py-1 text-xs text-white/70 hover:bg-white/10 transition-colors text-left flex items-center"
                         >
-                          <MoreVertical className="w-4 h-4" />
+                          <Edit3 className="w-3 h-3 mr-2" />
+                          Editar
                         </button>
-                        
-                        {/* Dropdown Menu */}
-                        {showMenuFor === c.id && (
-                          <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 min-w-[160px]">
-                            {auth.currentUser && auth.currentUser.uid === c.userId ? (
-                              // User's own comment - can delete
-                              <button
-                                onClick={() => handleDelete(c)}
-                                className="w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Excluir</span>
-                              </button>
-                            ) : (
-                              // Other user's comment - can hide or start conversation
-                              <>
-                                <button
-                                  onClick={() => handleHideComment(c.id)}
-                                  className="w-full text-left px-4 py-2 text-white/70 hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                                >
-                                  <EyeOff className="w-4 h-4" />
-                                  <span>Ocultar</span>
-                                </button>
-                                <button
-                                  onClick={() => handleStartConversation(c)}
-                                  className="w-full text-left px-4 py-2 text-white/70 hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                                >
-                                  <MessageSquare className="w-4 h-4" />
-                                  <span>Conversar</span>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                        <button
+                          onClick={() => handleDeleteComment(comment.id, isReply, parentId)}
+                          className="w-full px-3 py-1 text-xs text-red-400 hover:bg-red-500/10 transition-colors text-left flex items-center"
+                        >
+                          <Trash2 className="w-3 h-3 mr-2" />
+                          Deletar
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setShowMenuFor(null)}
+                      className="w-full px-3 py-1 text-xs text-white/70 hover:bg-white/10 transition-colors text-left flex items-center"
+                    >
+                      <Flag className="w-3 h-3 mr-2" />
+                      Reportar
+                    </button>
                   </div>
-                  <p className="text-white/80 mb-3 leading-relaxed">{c.content}</p>
-                </div>
+                )}
               </div>
             </div>
-          ))}
+
+            <p className="text-white/90 text-sm leading-relaxed">
+              {comment.content}
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-4 mt-2 ml-3">
+            <button
+              onClick={() => handleLikeComment(comment.id, isReply, parentId)}
+              className={`flex items-center space-x-1 text-xs transition-colors ${
+                likedComments.has(comment.id)
+                  ? 'text-red-400'
+                  : 'text-white/50 hover:text-white/70'
+              }`}
+            >
+              <Heart className={`w-3 h-3 ${likedComments.has(comment.id) ? 'fill-current' : ''}`} />
+              <span>{comment.likes}</span>
+            </button>
+
+            {!isReply && (
+              <button
+                onClick={() => handleReply(comment.id)}
+                className="flex items-center space-x-1 text-xs text-white/50 hover:text-white/70 transition-colors"
+              >
+                <Reply className="w-3 h-3" />
+                <span>Responder</span>
+              </button>
+            )}
+          </div>
+
+          {/* Replies */}
+          {!isReply && comment.replies?.length > 0 && (
+            <div className="mt-3">
+              {comment.replies.map(reply => renderComment(reply, true, comment.id))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="border-t border-white/10 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-white font-medium text-sm">
+          Comentários ({comments.length})
+        </h4>
+      </div>
+
+      {/* Comment Form */}
+      <form onSubmit={handleSubmitComment} className="mb-6">
+        <div className="flex space-x-3">
+          <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+            <User className="w-4 h-4 text-white/70" />
+          </div>
+          <div className="flex-1">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+              <textarea
+                ref={commentInputRef}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder={replyingTo ? "Escreva uma resposta..." : "Escreva um comentário..."}
+                className="w-full bg-transparent text-white placeholder-white/50 text-sm resize-none outline-none"
+                rows="2"
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              {replyingTo && (
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="text-white/50 hover:text-white/70 text-xs transition-colors"
+                >
+                  Cancelar resposta
+                </button>
+              )}
+              <div className="flex items-center space-x-2 ml-auto">
+                <button
+                  type="submit"
+                  disabled={!newComment.trim() || loading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-white/10 disabled:text-white/50 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{replyingTo ? 'Responder' : 'Comentar'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      {/* Comments List */}
+      <div className="space-y-0">
+        {comments.map(comment => renderComment(comment))}
+      </div>
+
+      {comments.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-white/50 text-sm">
+            Nenhum comentário ainda. Seja o primeiro a comentar!
+          </p>
         </div>
       )}
     </div>
@@ -245,5 +342,3 @@ const CommentsThread = ({ postId }) => {
 };
 
 export default CommentsThread;
-
-

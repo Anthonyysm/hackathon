@@ -1,129 +1,237 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Check } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import React from 'react';
+import { Users, TrendingUp, Sparkles, Plus, Check } from 'lucide-react';
 
 const SuggestedGroups = () => {
-  const navigate = useNavigate();
-  const [joinedGroups, setJoinedGroups] = useState(new Set());
-
-  useEffect(() => {
-    const fetchJoined = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-      try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          const set = new Set((data.joinedGroups || []).map(String));
-          setJoinedGroups(set);
-        }
-      } catch {}
-    };
-    fetchJoined();
-  }, []);
-
-  const joinGroup = async (groupId) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-    if (joinedGroups.has(groupId)) {
-      // Se já está no grupo, só navega para a comunidade
-      navigate(`/community/${groupId}`);
-      return;
-    }
-    try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, { joinedGroups: arrayUnion(groupId) });
-      setJoinedGroups((prev) => new Set(prev).add(groupId));
-      // Remove o redirecionamento automático - usuário fica na página atual
-      // navigate(`/community/${groupId}`);
-    } catch (e) {
-      // Em caso de erro, ainda atualiza o estado local para feedback visual
-      setJoinedGroups((prev) => new Set(prev).add(groupId));
-      console.error('Erro ao entrar no grupo:', e);
-    }
-  };
-  
-  const groups = [
+  // Mock data para desenvolvimento
+  const communities = [
     {
-      id: 'ansiedade-estresse',
-      name: 'Ansiedade & Estresse',
-      description: 'Apoio para quem lida com ansiedade e estresse no dia a dia',
-      members: 1247,
-      color: 'from-blue-500 to-blue-600'
+      id: 1,
+      name: "Ansiedade e Bem-estar",
+      icon: "🧘",
+      memberCount: 1250,
+      description: "Compartilhe experiências e dicas para lidar com ansiedade"
     },
     {
-      id: 'sono-qualidade',
-      description: 'Dicas e apoio para melhor qualidade do sono',
-      members: 892,
-      color: 'from-indigo-500 to-indigo-600'
+      id: 2,
+      name: "Depressão - Apoio",
+      icon: "🌱",
+      memberCount: 980,
+      description: "Um espaço seguro para falar sobre depressão"
     },
     {
-      id: 'luto-apoio',
-      name: 'Luto & Apoio',
-      description: 'Apoio em processos de luto e perda',
-      members: 634,
-      color: 'from-purple-500 to-purple-600'
+      id: 3,
+      name: "Meditação Diária",
+      icon: "🕯️",
+      memberCount: 750,
+      description: "Pratique meditação em grupo"
     },
     {
-      id: 'autoconfiança',
-      name: 'Autoconfiança',
-      description: 'Construindo autoestima e confiança',
-      members: 1156,
-      color: 'from-pink-500 to-pink-600'
+      id: 4,
+      name: "Relacionamentos",
+      icon: "💝",
+      memberCount: 650,
+      description: "Discussões sobre relacionamentos saudáveis"
+    },
+    {
+      id: 5,
+      name: "Autoestima",
+      icon: "⭐",
+      memberCount: 820,
+      description: "Construindo confiança e amor próprio"
     }
   ];
 
-  return (
-    <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-      <div className="flex items-center space-x-2 mb-6">
-        <Users className="w-5 h-5 text-gray-400" />
-        <h2 className="text-lg font-semibold text-white">Grupos Sugeridos</h2>
+  const [userCommunities, setUserCommunities] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  const joinCommunity = (communityId) => {
+    setUserCommunities(prev => [...prev, communityId]);
+  };
+
+  const leaveCommunity = (communityId) => {
+    setUserCommunities(prev => prev.filter(id => id !== communityId));
+  };
+
+  const getPopularCommunities = (limit) => {
+    return [...communities]
+      .sort((a, b) => b.memberCount - a.memberCount)
+      .slice(0, limit);
+  };
+
+  const popularCommunities = getPopularCommunities(5);
+
+  if (loading) {
+    return (
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
+        <div className="flex items-center justify-center py-8">
+          <div className="loading-spinner"></div>
+          <span className="ml-3 text-white/70">Carregando...</span>
+        </div>
       </div>
-      
-      <div className="space-y-4">
-        {groups.map((group) => (
-          <div
-            key={group.id}
-            className="bg-white/5 border border-gray-200/20 rounded-xl p-4 hover:bg-white/10 hover:border-gray-300/20 transition-all duration-200"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-white mb-2">
+          Comunidades Sugeridas
+        </h2>
+        <p className="text-white/70 text-sm">
+          Descubra grupos que podem te interessar
+        </p>
+      </div>
+
+      {/* Popular Communities */}
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
+        <div className="flex items-center space-x-2 mb-4">
+          <TrendingUp className="w-5 h-5 text-orange-400" />
+          <h3 className="text-lg font-medium text-white">Em Alta</h3>
+        </div>
+        
+        <div className="space-y-4">
+          {popularCommunities.slice(0, 3).map((community) => {
+            const isMember = userCommunities.includes(community.id);
+            
+            return (
+              <div key={community.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                    {community.icon}
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-white text-sm">
+                      {community.name}
+                    </h4>
+                    <p className="text-white/60 text-xs">
+                      {community.memberCount.toLocaleString()} membros
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium text-white">{group.name}</h3>
-                  <p className="text-sm text-gray-400">{group.members.toLocaleString()} membros</p>
+                
+                <button
+                  onClick={() => isMember ? leaveCommunity(community.id) : joinCommunity(community.id)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                    isMember 
+                      ? 'bg-green-500 hover:bg-green-600' 
+                      : 'bg-white hover:bg-white/90'
+                  }`}
+                  title={isMember ? 'Sair da comunidade' : 'Entrar na comunidade'}
+                >
+                  {isMember ? (
+                    <Check className="w-4 h-4 text-white" />
+                  ) : (
+                    <Plus className="w-4 h-4 text-black" />
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* New Communities */}
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
+        <div className="flex items-center space-x-2 mb-4">
+          <Sparkles className="w-5 h-5 text-yellow-400" />
+          <h3 className="text-lg font-medium text-white">Novidades</h3>
+        </div>
+        
+        <div className="space-y-4">
+          {communities
+            .filter(community => !userCommunities.includes(community.id))
+            .slice(0, 2)
+            .map((community) => (
+              <div key={community.id} className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm">
+                    {community.icon}
+                  </div>
+                  <h4 className="font-medium text-white text-sm">
+                    {community.name}
+                  </h4>
+                </div>
+                
+                <p className="text-white/60 text-xs mb-3 line-clamp-2">
+                  {community.description}
+                </p>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-white/50 text-xs">
+                    {community.memberCount} membros
+                  </span>
+                  
+                  <button
+                    onClick={() => joinCommunity(community.id)}
+                    className="w-8 h-8 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-all duration-200 cursor-pointer"
+                    title="Entrar na comunidade"
+                  >
+                    <Plus className="w-4 h-4 text-black" />
+                  </button>
                 </div>
               </div>
-            </div>
-            
-            <p className="text-sm text-gray-300 mb-4 leading-relaxed">{group.description}</p>
-            
-            <div className="flex space-x-2">
-              <button 
-                onClick={() => navigate(`/community/${group.id}`)}
-                className="flex-1 bg-white/10 border border-white/30 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-white/20 transition-all duration-200 flex items-center justify-center space-x-2"
-              >
-                <Users className="w-4 h-4" />
-                <span>Ver Grupo</span>
-              </button>
-              <button onClick={() => joinGroup(group.id)} disabled={joinedGroups.has(group.id)} className={`text-black text-sm font-medium py-2 px-3 rounded-lg transform transition-all duration-200 ${joinedGroups.has(group.id) ? 'bg-green-300 cursor-default' : 'bg-gradient-to-r from-white to-gray-200 hover:from-gray-200 hover:to-gray-300 hover:scale-105'}`}>
-                {joinedGroups.has(group.id) ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+            ))}
+        </div>
+      </div>
+
+      {/* Your Communities */}
+      {userCommunities.length > 0 && (
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Users className="w-5 h-5 text-blue-400" />
+            <h3 className="text-lg font-medium text-white">Suas Comunidades</h3>
           </div>
-        ))}
+          
+          <div className="space-y-3">
+            {userCommunities.slice(0, 3).map((communityId) => {
+              const community = communities.find(c => c.id === communityId);
+              if (!community) return null;
+              
+              return (
+                <div key={community.id} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+                    {community.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-white text-sm">
+                      {community.name}
+                    </h4>
+                    <p className="text-white/60 text-xs">
+                      {community.memberCount} membros
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => leaveCommunity(community.id)}
+                    className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all duration-200 cursor-pointer"
+                    title="Sair da comunidade"
+                  >
+                    <Check className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          
+          {userCommunities.length > 3 && (
+            <div className="text-center pt-3">
+              <button className="px-4 py-2 text-blue-400 hover:text-blue-300 transition-colors text-sm">
+                Ver Todas ({userCommunities.length})
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Explore More Button */}
+      <div className="text-center">
+        <button 
+          onClick={() => window.location.href = '/explore-communities'}
+          className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-all duration-200"
+        >
+          Explorar Mais Comunidades
+        </button>
       </div>
     </div>
   );

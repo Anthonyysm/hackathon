@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, User, Send, Paperclip, Search, Filter, MoreVertical, Clock, Check, CheckCheck, ArrowLeft } from 'lucide-react';
+import { MessageCircle, User, Send, Paperclip, Search, Filter, MoreVertical, Clock, Check, CheckCheck, ArrowLeft, Users, Hash } from 'lucide-react';
+import Card from './ui/Card';
+import Input from './ui/Input';
 
 const LiveChat = () => {
   const [selectedChat, setSelectedChat] = useState(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [showChatList, setShowChatList] = useState(true);
+  const [activeTab, setActiveTab] = useState('conversas'); // 'conversas', 'psicologos', 'grupos'
+  const [selectedGroup, setSelectedGroup] = useState(null);
 
   const psychologists = [
     {
@@ -42,6 +45,97 @@ const LiveChat = () => {
           time: 'Agora',
           isOwn: false,
           status: 'delivered'
+        }
+      ]
+    }
+  ];
+
+  const groups = [
+    {
+      id: 1,
+      name: 'Ansiedade & Bem-estar',
+      description: 'Grupo de apoio para pessoas que lidam com ansiedade',
+      memberCount: 156,
+      onlineCount: 23,
+      lastActivity: '2 min atrás',
+      avatar: '🧘‍♀️',
+      category: 'saude-mental',
+      messages: [
+        {
+          id: 1,
+          sender: 'Maria Silva',
+          message: 'Alguém mais está se sentindo ansioso hoje?',
+          time: '2 min atrás',
+          isOwn: false,
+          avatar: null
+        },
+        {
+          id: 2,
+          sender: 'João Santos',
+          message: 'Sim, estou aqui para conversar se precisar!',
+          time: '1 min atrás',
+          isOwn: false,
+          avatar: null
+        }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Depressão - Juntos Somos Mais Fortes',
+      description: 'Espaço seguro para compartilhar experiências e receber apoio',
+      memberCount: 89,
+      onlineCount: 12,
+      lastActivity: '5 min atrás',
+      avatar: '💙',
+      category: 'saude-mental',
+      messages: [
+        {
+          id: 1,
+          sender: 'Ana Costa',
+          message: 'Obrigada a todos pelo apoio ontem!',
+          time: '5 min atrás',
+          isOwn: false,
+          avatar: null
+        }
+      ]
+    },
+    {
+      id: 3,
+      name: 'Mindfulness & Meditação',
+      description: 'Técnicas e práticas para uma vida mais consciente',
+      memberCount: 234,
+      onlineCount: 45,
+      lastActivity: 'Agora',
+      avatar: '🧘‍♂️',
+      category: 'bem-estar',
+      messages: [
+        {
+          id: 1,
+          sender: 'Pedro Lima',
+          message: 'Alguém quer fazer uma sessão de meditação guiada?',
+          time: 'Agora',
+          isOwn: false,
+          avatar: null
+        }
+      ]
+    },
+    {
+      id: 4,
+      name: 'Pais & Cuidadores',
+      description: 'Apoio para pais e cuidadores de pessoas com necessidades especiais',
+      memberCount: 67,
+      onlineCount: 8,
+      lastActivity: '10 min atrás',
+      avatar: '👨‍👩‍👧‍👦',
+      category: 'familia',
+      messages: [
+        {
+          id: 1,
+          sender: 'Carla Mendes',
+          message: 'Dicas para lidar com o estresse dos cuidados?',
+          time: '10 min atrás',
+          isOwn: false,
+          avatar: null
         }
       ]
     }
@@ -187,11 +281,19 @@ const LiveChat = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const filteredGroups = groups.filter(group => {
+    const matchesSearch = group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         group.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterType === 'all' || group.category === filterType;
+    
+    return matchesSearch && matchesFilter;
+  });
+
   const selectedConversation = conversations.find(conv => conv.id === selectedChat);
   const selectedPsychologist = psychologists.find(psych => psych.id === selectedChat);
 
   const handleSendMessage = () => {
-    if (!message.trim() || (!selectedConversation && !selectedPsychologist)) return;
+    if (!message.trim() || (!selectedConversation && !selectedPsychologist && !selectedGroup)) return;
     
     // TODO: Implement message sending to Firebase
     console.log('Enviando mensagem:', message);
@@ -209,74 +311,97 @@ const LiveChat = () => {
     setSelectedChat(psychologistId);
   };
 
+  const handleGroupChat = (group) => {
+    setSelectedGroup(group);
+    setSelectedChat(null);
+  };
+
   const getCurrentChatData = () => {
     if (selectedConversation) return selectedConversation;
     if (selectedPsychologist) return selectedPsychologist;
+    if (selectedGroup) return selectedGroup;
     return null;
   };
 
   const currentChat = getCurrentChatData();
 
+  const renderTabButton = (tabKey, label, Icon) => (
+    <button
+      onClick={() => setActiveTab(tabKey)}
+      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+        activeTab === tabKey
+          ? 'bg-white/20 text-white'
+          : 'bg-white/10 text-white/70 hover:text-white'
+      }`}
+    >
+      <Icon className="w-4 h-4" />
+      <span>{label}</span>
+    </button>
+  );
+
   return (
     <div className="space-y-6">
       {/* Chat Options */}
-      <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-        <div className="flex items-center space-x-2 mb-6">
-          <MessageCircle className="w-6 h-6 text-gray-400" />
-          <h2 className="text-xl font-semibold text-white">Conversas em Tempo Real</h2>
-        </div>
-
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setShowChatList(true)}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                showChatList
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white/10 text-white/70 hover:text-white'
-              }`}
-            >
-              Conversas
-            </button>
-            <button
-              onClick={() => setShowChatList(false)}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                !showChatList
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white/10 text-white/70 hover:text-white'
-              }`}
-            >
-              Psicólogos
-            </button>
+      <Card variant="glass" padding="lg">
+        <Card.Header>
+          <div className="flex items-center space-x-2 mb-6">
+            <MessageCircle className="w-6 h-6 text-gray-400" />
+            <h2 className="text-xl font-semibold text-white">Conversas em Tempo Real</h2>
           </div>
-        </div>
 
-        {showChatList ? (
-          <div className="space-y-4">
-            {/* Search and Filter */}
-            <div className="flex space-x-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Pesquisar conversas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
-                />
-              </div>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-              >
-                <option value="all">Todas</option>
-                <option value="psychologist">Psicólogos</option>
-                <option value="support">Apoio</option>
-              </select>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-4">
+              {renderTabButton('conversas', 'Conversas', MessageCircle)}
+              {renderTabButton('psicologos', 'Psicólogos', User)}
+              {renderTabButton('grupos', 'Grupos', Users)}
             </div>
+          </div>
+        </Card.Header>
 
-            {/* Conversations List */}
+        <Card.Content>
+          {/* Search and Filter */}
+          <div className="flex space-x-3 mb-4">
+            <div className="relative flex-1">
+              <Input
+                type="text"
+                placeholder={
+                  activeTab === 'conversas' ? "Pesquisar conversas..." :
+                  activeTab === 'psicologos' ? "Pesquisar psicólogos..." :
+                  "Pesquisar grupos..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                variant="glass"
+                size="sm"
+                leftIcon={Search}
+                onLeftIconClick={() => {}}
+                className="w-full"
+              />
+            </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+            >
+              <option value="all">Todas</option>
+              {activeTab === 'conversas' && (
+                <>
+                  <option value="psychologist">Psicólogos</option>
+                  <option value="support">Apoio</option>
+                </>
+              )}
+              {activeTab === 'grupos' && (
+                <>
+                  <option value="saude-mental">Saúde Mental</option>
+                  <option value="bem-estar">Bem-estar</option>
+                  <option value="familia">Família</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          {/* Content based on active tab */}
+          {activeTab === 'conversas' && (
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {filteredConversations.map((conversation) => (
                 <button
@@ -320,89 +445,104 @@ const LiveChat = () => {
                 </button>
               ))}
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Psychologist Chat */}
-            <button
-              onClick={() => setSelectedChat('psychologist')}
-              className={`p-4 rounded-xl border transition-all duration-200 ${
-                selectedChat === 'psychologist'
-                  ? 'bg-white/10 border-white/20'
-                  : 'bg-gray-800/30 border-gray-600/30 hover:bg-gray-700/30'
-              }`}
-            >
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-left">
-                  <h3 className="font-medium text-white">Psicólogo Online</h3>
-                  <p className="text-sm text-gray-400">Profissionais disponíveis</p>
-                </div>
-              </div>
-              <p className="text-xs text-gray-300 text-left">
-                Converse com psicólogos licenciados para apoio profissional
-              </p>
-            </button>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Psychologist List */}
-      {selectedChat === 'psychologist' && (
-        <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-          <h3 className="text-lg font-semibold text-white mb-4">Psicólogos Disponíveis</h3>
-          <div className="space-y-4">
-            {psychologists.map((psychologist) => (
-              <div
-                key={psychologist.id}
-                className="bg-white/5 border border-gray-200/20 rounded-xl p-4 hover:bg-white/10 transition-all duration-200"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
+          {activeTab === 'psicologos' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {psychologists.map((psychologist) => (
+                <button
+                  key={psychologist.id}
+                  onClick={() => handlePsychologistChat(psychologist.id)}
+                  className={`p-4 rounded-xl border transition-all duration-200 text-left ${
+                    selectedChat === psychologist.id
+                      ? 'bg-white/20 border-white/30'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3 mb-3">
                     <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-2xl">
                       {psychologist.avatar}
                     </div>
-                    <div>
-                      <h4 className="font-medium text-white">{psychologist.name}</h4>
+                    <div className="text-left">
+                      <h3 className="font-medium text-white">{psychologist.name}</h3>
                       <p className="text-sm text-gray-400">{psychologist.specialty}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <span className="text-xs text-gray-400">Online</span>
-                        <span className="text-xs text-gray-400">• ⭐ {psychologist.rating}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-xs text-gray-400">Online</span>
+                    <span className="text-xs text-gray-400">• ⭐ {psychologist.rating}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'grupos' && (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {filteredGroups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => handleGroupChat(group)}
+                  className={`w-full p-4 rounded-xl border transition-all duration-200 text-left ${
+                    selectedGroup?.id === group.id
+                      ? 'bg-white/20 border-white/30'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-2xl">
+                      {group.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium text-white truncate">{group.name}</h3>
+                        <span className="text-xs text-white/50">{group.lastActivity}</span>
+                      </div>
+                      <p className="text-sm text-white/70 mb-2">{group.description}</p>
+                      <div className="flex items-center justify-between text-xs text-white/50">
+                        <div className="flex items-center space-x-4">
+                          <span className="flex items-center space-x-1">
+                            <Users className="w-3 h-3" />
+                            <span>{group.memberCount} membros</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                            <span>{group.onlineCount} online</span>
+                          </span>
+                        </div>
+                        <span className="px-2 py-1 bg-white/10 rounded-full text-xs">
+                          {group.category === 'saude-mental' ? 'Saúde Mental' :
+                           group.category === 'bem-estar' ? 'Bem-estar' : 'Família'}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => handlePsychologistChat(psychologist.id)}
-                      className="p-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all duration-200"
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                </button>
+              ))}
+            </div>
+          )}
+        </Card.Content>
+      </Card>
 
       {/* Chat Interface */}
       {currentChat && (
-        <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl shadow-2xl overflow-hidden">
+        <Card variant="glass" className="overflow-hidden">
           {/* Chat Header */}
-          <div className="bg-white/5 p-4 border-b border-gray-200/20">
+          <div className="bg-white/5 p-4 border-b border-white/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => setSelectedChat(null)}
-                  className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                  onClick={() => {
+                    setSelectedChat(null);
+                    setSelectedGroup(null);
+                  }}
+                  className="p-1 hover:bg-white/10 rounded-lg transition-colors focus-ring"
+                  aria-label="Voltar para lista"
                 >
                   <ArrowLeft className="w-5 h-5 text-white" />
                 </button>
-                <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
                   {currentChat.avatar ? (
                     <img src={currentChat.avatar} alt="" className="w-full h-full rounded-full" />
                   ) : (
@@ -411,8 +551,12 @@ const LiveChat = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-white">{currentChat.name}</h3>
-                  <p className="text-sm text-gray-400">
-                    {currentChat.status === 'online' ? 'Online' : 'Offline'}
+                  <p className="text-sm text-white/70">
+                    {selectedGroup ? (
+                      `${currentChat.memberCount} membros • ${currentChat.onlineCount} online`
+                    ) : (
+                      currentChat.status === 'online' ? 'Online' : 'Offline'
+                    )}
                     {currentChat.type === 'psychologist' && ' • Profissional'}
                     {selectedPsychologist && ' • Psicólogo'}
                   </p>
@@ -432,15 +576,20 @@ const LiveChat = () => {
                   className={`max-w-xs px-4 py-2 rounded-2xl ${
                     msg.isOwn
                       ? 'bg-white text-black'
-                      : 'bg-gray-700/50 text-gray-200'
+                      : 'bg-white/10 text-white'
                   }`}
                 >
+                  {!msg.isOwn && selectedGroup && (
+                    <div className="text-xs text-white/70 mb-1 font-medium">
+                      {msg.sender}
+                    </div>
+                  )}
                   <p className="text-sm">{msg.message}</p>
                   <div className="flex items-center justify-between mt-1">
-                    <span className={`text-xs ${msg.isOwn ? 'text-gray-700' : 'text-gray-400'}`}>
+                    <span className={`text-xs ${msg.isOwn ? 'text-gray-700' : 'text-white/50'}`}>
                       {msg.time}
                     </span>
-                    {msg.isOwn && getMessageStatus(msg.status)}
+                    {msg.isOwn && !selectedGroup && getMessageStatus(msg.status)}
                   </div>
                 </div>
               </div>
@@ -448,29 +597,36 @@ const LiveChat = () => {
           </div>
 
           {/* Message Input */}
-          <div className="p-4 border-t border-gray-200/20">
+          <div className="p-4 border-t border-white/10">
             <div className="flex items-center space-x-2">
-              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/30 rounded-lg transition-all duration-200">
+              <button className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors focus-ring">
                 <Paperclip className="w-5 h-5" />
               </button>
-              <input
+              <Input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Digite sua mensagem..."
-                className="flex-1 bg-gray-800/50 border border-gray-600/50 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50 transition-all duration-200"
+                placeholder={
+                  selectedGroup 
+                    ? "Digite sua mensagem para o grupo..." 
+                    : "Digite sua mensagem..."
+                }
+                variant="glass"
+                size="sm"
+                className="flex-1"
               />
               <button 
                 onClick={handleSendMessage}
                 disabled={!message.trim()}
-                className="p-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-ring"
+                aria-label="Enviar mensagem"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

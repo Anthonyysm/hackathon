@@ -16,9 +16,7 @@ import {
   X,
   Smile
 } from 'lucide-react';
-import { auth, db } from '../firebase';
 import CommentsThread from './CommentsThread';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -162,38 +160,6 @@ const PostDetail = () => {
     );
   };
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-
-    try {
-      // TODO: Implement real comment creation with Firebase
-      const comment = {
-        id: Date.now(),
-        author: {
-          id: user.uid,
-          name: userData?.displayName || user.displayName || 'Usuário',
-          avatar: user.photoURL
-        },
-        content: newComment,
-        timestamp: new Date(),
-        likes: 0,
-        liked: false,
-        replies: []
-      };
-
-      setComments(prev => [comment, ...prev]);
-      setNewComment('');
-      setShowCommentForm(false);
-      
-      // Update post comment count
-      setPost(prev => ({
-        ...prev,
-        comments: prev.comments + 1
-      }));
-    } catch (error) {
-      console.error('Erro ao adicionar comentário:', error);
-    }
-  };
 
   const handleReplyToComment = (commentId) => {
     // TODO: Implement reply functionality

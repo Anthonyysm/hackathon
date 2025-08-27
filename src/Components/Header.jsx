@@ -1,31 +1,18 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Search, Home, MessageCircle, Users, Calendar, BarChart3, Settings, Flower, Menu, X, LogOut, User as UserIcon, Bell, Compass, BookOpen, HelpCircle } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { Search, Home, MessageCircle, Users, Calendar, BarChart3, Settings, Menu, X, Bell, BookOpen, HelpCircle, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import Input from '../Components/ui/Input';
 
-const Header = ({ activeTab, setActiveTab, onStartTour }) => {
+const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-      if (currentUser) {
-        const userRef = doc(db, 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setUser({ ...currentUser, role: userSnap.data().role });
-        } else {
-          setUser(currentUser);
-        }
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  const menuRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const toggleMenu = useCallback(() => {
     setIsMenuOpen(prev => !prev);
@@ -37,6 +24,11 @@ const Header = ({ activeTab, setActiveTab, onStartTour }) => {
     setIsMenuOpen(false);
   }, []);
 
+  const closeAllMenus = useCallback(() => {
+    setIsMenuOpen(false);
+    setIsDropdownOpen(false);
+  }, []);
+
   const navItems = useMemo(() => {
     const items = [
       { name: 'Início', tab: 'home', icon: Home },
@@ -45,23 +37,23 @@ const Header = ({ activeTab, setActiveTab, onStartTour }) => {
       { name: 'Humor', tab: 'humor', icon: BarChart3 },
     ];
 
-    if (user && user.role === 'psicologo') {
+    if (user?.role === 'psicologo') {
       items.splice(2, 0, { name: 'Sessões', tab: 'sessions', icon: Users });
-    } else if (user && user.role === 'cliente') {
+    } else if (user?.role === 'cliente') {
       items.splice(2, 0, { name: 'Sessões', tab: 'sessions', icon: Calendar });
     }
 
     return items;
-  }, [user]);
+  }, [user?.role]);
 
   const handleNavClick = useCallback((tabName) => {
     setActiveTab(tabName);
-    setIsMenuOpen(false);
-    setIsDropdownOpen(false);
-  }, [setActiveTab]);
+    closeAllMenus();
+  }, [setActiveTab, closeAllMenus]);
 
   const handleLogout = useCallback(async () => {
     try {
+      const { auth } = await import('../firebase');
       await auth.signOut();
       navigate('/login');
       setIsDropdownOpen(false);
@@ -71,127 +63,239 @@ const Header = ({ activeTab, setActiveTab, onStartTour }) => {
     }
   }, [navigate]);
 
+  const handleSearch = useCallback((e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Implementar busca
+      console.log('Searching for:', searchQuery);
+    }
+  }, [searchQuery]);
+
+  const handleSearchChange = useCallback((e) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  // Fechar menus ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target) &&
+          dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        closeAllMenus();
+      }
+    };
+
+    if (isMenuOpen || isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMenuOpen, isDropdownOpen, closeAllMenus]);
+
+  // Fechar menus ao pressionar Escape
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        closeAllMenus();
+      }
+    };
+
+    if (isMenuOpen || isDropdownOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMenuOpen, isDropdownOpen, closeAllMenus]);
+
+  // Prevenir scroll do body quando menu está aberto
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
+
+  if (loading) {
+    return (
+      <header className="glass-header sticky top-0 z-50">
+        <div className="container-responsive">
+          <div className="flex items-center justify-between h-16">
+            <div className="loading-spinner"></div>
+            <span className="text-white/70">Carregando...</span>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <header className="bg-black/95 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="glass-header sticky top-0 z-50">
+      <div className="container-responsive">
         <div className="flex items-center justify-between h-16">
-          {/* Left Section: Mobile Menu Button, Logo and Search Bar */}
+          {/* Left Section */}
           <div className="flex items-center space-x-3">
             {/* Mobile Menu Button */}
             <button
-              className="lg:hidden text-white hover:bg-white/10 p-2 rounded-xl transition-all duration-300 backdrop-blur-md"
+              className="show-mobile btn-icon group"
               onClick={toggleMenu}
-              aria-label="Abrir menu"
+              aria-label="Abrir menu de navegação"
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
             {/* Logo */}
-            <button onClick={() => setActiveTab('home')} className="flex items-center space-x-2 group">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 overflow-hidden bg-white/10 border border-white/20 backdrop-blur-md group-hover:bg-white/15 group-hover:border-white/30 group-hover:shadow-lg group-hover:shadow-white/10">
-              <img 
-                src="/Logo-Sereno3.png" 
-                alt="Sereno Logo" 
-                className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300"
-                loading="eager"
-              />
+            <button 
+              onClick={() => setActiveTab('home')} 
+              className="logo-button group"
+              aria-label="Ir para página inicial"
+            >
+              <div className="logo-container">
+                <img 
+                  src="/Logo-Sereno3.png" 
+                  alt="Sereno Logo" 
+                  className="logo-image group-hover:scale-105"
+                  loading="eager"
+                  width="48"
+                  height="48"
+                />
               </div>
-              <span className="text-xl font-bold text-white tracking-wide group-hover:text-white/90 transition-colors ">
-                Sereno
-              </span>
+              <span className="logo-text group-hover:text-white/90 mr-10">Sereno</span>
             </button>
             
-            {/* Search Bar - Visible on desktop, takes up central space */}
-            <div className="relative hidden sm:block flex-1 max-w-xl ml-6">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Pesquisar posts, grupos, pessoas..."
-                className="w-full bg-black/50 border border-s-white rounded-full py-2 pl-12 pr-6 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all duration-200 text-sm"
-              />
+            {/* Search Bar */}
+            <div className="search-container ml-8">
+              <form onSubmit={handleSearch} className="relative">
+                <Input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Pesquisar posts, grupos, pessoas..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  variant="glass"
+                  size="md"
+                  radius="xl"
+                  className="w-96"
+                  leftIcon={Search}
+                  onLeftIconClick={() => handleSearch({ preventDefault: () => {} })}
+                  aria-label="Pesquisar na plataforma"
+                />
+              </form>
             </div>
           </div>
 
-          {/* Right Section: Desktop Navigation Icons and User/Logout */}
+          {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {/* Desktop Navigation Icons (only icons as per image) */}
-            <div className="hidden lg:flex items-center space-x-5">
+            {/* Desktop Navigation */}
+            <div className="show-desktop flex items-center space-x-5">
               {navItems.map((item) => (
                 <button
                   key={item.name}
                   onClick={() => handleNavClick(item.tab)}
-                  className={`relative text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full ${activeTab === item.tab ? 'bg-white/20' : 'hover:bg-white/10'}`}
+                  className={`btn-icon group ${activeTab === item.tab ? 'btn-icon-active' : ''}`}
+                  aria-label={`Navegar para ${item.name}`}
+                  aria-current={activeTab === item.tab ? 'page' : undefined}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="w-5 h-5" aria-hidden="true" />
                 </button>
               ))}
               
               {/* Notifications Button */}
               <button
-                onClick={() => navigate('/notifications')}
-                className="relative text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full hover:bg-white/10"
+                onClick={() => handleNavClick('notifications')}
+                className={`btn-icon group ${activeTab === 'notifications' ? 'btn-icon-active' : ''}`}
+                aria-label="Ver notificações"
+                aria-current={activeTab === 'notifications' ? 'page' : undefined}
               >
-                <Bell className="w-5 h-5" />
-                {/* Notification Badge */}
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                  3
-                </span>
+                <Bell className="w-5 h-5" aria-hidden="true" />
+                <span className="badge" aria-label="3 notificações não lidas">3</span>
               </button>
 
               {/* Settings Button */}
               <button
                 onClick={() => handleNavClick('settings')}
-                className={`relative text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full hover:bg-white/10 ${activeTab === 'settings' ? 'bg-white/20' : ''}`}
+                className={`btn-icon group ${activeTab === 'settings' ? 'btn-icon-active' : ''}`}
+                aria-label="Configurações"
+                aria-current={activeTab === 'settings' ? 'page' : undefined}
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="w-5 h-5" aria-hidden="true" />
               </button>
 
               {/* Help Button */}
               <button
                 onClick={onStartTour}
-                className="text-white/70 hover:text-white transition-all duration-300 group p-2 rounded-full hover:bg-white/10"
+                className="btn-icon group"
                 title="Iniciar tour do aplicativo"
+                aria-label="Iniciar tour do aplicativo"
               >
-                <HelpCircle className="w-5 h-5" />
+                <HelpCircle className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
-            {/* User Profile and Logout */}
+            {/* User Section */}
             {user ? (
-              <div className="relative">
-                <button 
-                  className="flex items-center space-x-3 text-white/70 hover:text-white transition-colors"
-                  onClick={toggleDropdown}
-                >
-                  <UserIcon className="w-5 h-5" />
-                  <span 
-                    onClick={() => navigate('/user/' + user.uid)}
-                    className="hidden md:block text-sm font-light hover:text-white transition-colors cursor-pointer"
+              <div className="relative" ref={dropdownRef}>
+                <div className="flex items-center space-x-3">
+                  <button 
+                    className="flex items-center space-x-3 text-white/70 hover:text-white trans"
+                    onClick={toggleDropdown}
+                    aria-label="Menu do usuário"
+                    aria-expanded={isDropdownOpen}
+                    aria-haspopup="true"
                   >
-                    {user.displayName || 'Usuário'}
-                  </span>
-                </button>
+                    <User className="w-5 h-5" aria-hidden="true" />
+                    <span className="hide-mobile text-sm font-light">
+                      {user.displayName || 'Usuário'}
+                    </span>
+                  </button>
+                </div>
+                
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-black/90 border border-white/10 rounded-md shadow-lg py-1 z-60">
+                  <div className="dropdown-menu" role="menu">
                     <button 
-                      onClick={() => navigate('/user/' + user.uid)} 
-                      className="flex items-center w-full px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                      onClick={() => {
+                        setActiveTab('profile');
+                        setIsDropdownOpen(false);
+                      }}
+                      className="dropdown-item"
+                      role="menuitem"
+                      aria-label="Ver meu perfil"
                     >
-                      <User className="w-4 h-4 mr-2" />
+                      <User className="w-4 h-4 mr-2" aria-hidden="true" />
                       Meu Perfil
                     </button>
+
                     <button 
-                      onClick={() => handleNavClick('settings')} 
-                      className="flex items-center w-full px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setIsDropdownOpen(false);
+                      }}
+                      className="dropdown-item"
+                      role="menuitem"
+                      aria-label="Configurações do perfil"
                     >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configurações
+                      <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
+                      Configurações do Perfil
                     </button>
+
                     <button 
                       onClick={handleLogout} 
-                      className="flex items-center w-full px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                      className="dropdown-item"
+                      role="menuitem"
+                      aria-label="Sair da conta"
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
+                      <LogOut className="w-4 h-4 mr-2" aria-hidden="true" />
                       Sair
                     </button>
                   </div>
@@ -200,7 +304,8 @@ const Header = ({ activeTab, setActiveTab, onStartTour }) => {
             ) : (
               <button 
                 onClick={() => navigate('/login')}
-                className="bg-white text-black px-4 py-2 rounded-xl text-sm font-light hover:bg-white/90 transition-all duration-200"
+                className="btn-primary"
+                aria-label="Fazer login"
               >
                 Login
               </button>
@@ -208,75 +313,94 @@ const Header = ({ activeTab, setActiveTab, onStartTour }) => {
           </div>
         </div>
 
-        {/* Mobile Menu Overlay */}
+        {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="lg:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40" onClick={toggleMenu}></div>
-        )}
-        {isMenuOpen && (
-          <div className="lg:hidden fixed top-0 left-0 h-full w-64 bg-black/95 border-r border-white/10 p-4 pt-16 z-50 transform transition-transform duration-300 ease-in-out">
-            <div className="flex flex-col space-y-4">
-              {navItems.map((item) => (
+          <>
+            <div className="mobile-menu-overlay" onClick={closeAllMenus}></div>
+            <div 
+              id="mobile-menu"
+              ref={menuRef}
+              className="mobile-menu-sidebar"
+              role="menu"
+              aria-label="Menu de navegação móvel"
+            >
+              <div className="flex flex-col space-y-4">
+                {navItems.map((item) => (
+                  <button
+                    key={item.name}
+                    onClick={() => handleNavClick(item.tab)}
+                    className={`mobile-menu-item ${activeTab === item.tab ? 'text-white' : ''}`}
+                    role="menuitem"
+                    aria-label={`Navegar para ${item.name}`}
+                    aria-current={activeTab === item.tab ? 'page' : undefined}
+                  >
+                    <item.icon className="w-6 h-6" aria-hidden="true" />
+                    <span>{item.name}</span>
+                  </button>
+                ))}
+                
                 <button
-                  key={item.name}
-                  onClick={() => handleNavClick(item.tab)}
-                  className={`text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3 ${activeTab === item.tab ? 'text-white' : ''}`}
+                  onClick={() => handleNavClick('notifications')}
+                  className={`mobile-menu-item ${activeTab === 'notifications' ? 'text-white' : ''}`}
+                  role="menuitem"
+                  aria-label="Ver notificações"
+                  aria-current={activeTab === 'notifications' ? 'page' : undefined}
                 >
-                  <item.icon className="w-6 h-6" />
-                  <span>{item.name}</span>
+                  <Bell className="w-6 h-6" aria-hidden="true" />
+                  <span>Notificações</span>
+                  <span className="badge-large">3</span>
                 </button>
-              ))}
-              
-              {/* Notifications in mobile menu */}
-              <button
-                onClick={() => navigate('/notifications')}
-                className="text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3"
-              >
-                <Bell className="w-6 h-6" />
-                <span>Notificações</span>
-                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                  3
-                </span>
-              </button>
 
-              {/* Settings in mobile menu */}
-              <button
-                onClick={() => handleNavClick('settings')}
-                className={`text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3 ${activeTab === 'settings' ? 'text-white' : ''}`}
-              >
-                <Settings className="w-6 h-6" />
-                <span>Configurações</span>
-              </button>
+                <button
+                  onClick={() => handleNavClick('settings')}
+                  className={`mobile-menu-item ${activeTab === 'settings' ? 'text-white' : ''}`}
+                  role="menuitem"
+                  aria-label="Configurações"
+                  aria-current={activeTab === 'settings' ? 'page' : undefined}
+                >
+                  <Settings className="w-6 h-6" aria-hidden="true" />
+                  <span>Configurações</span>
+                </button>
 
-              {/* Help in mobile menu */}
-              <button
-                onClick={onStartTour}
-                className="text-white/80 hover:text-white transition-colors text-lg text-left font-light flex items-center space-x-3"
-              >
-                <HelpCircle className="w-6 h-6" />
-                <span>Ajuda e Tour</span>
-              </button>
-              {user ? (
-                <button 
-                  onClick={handleLogout} 
-                  className="flex items-center mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                <button
+                  onClick={onStartTour}
+                  className="mobile-menu-item"
+                  role="menuitem"
+                  aria-label="Ajuda e tour do aplicativo"
                 >
-                  <LogOut className="w-5 h-5 mr-2" />
-                  Sair
+                  <HelpCircle className="w-6 h-6" aria-hidden="true" />
+                  <span>Ajuda e Tour</span>
                 </button>
-              ) : (
-                <button 
-                  onClick={() => navigate('/login')}
-                  className="mt-4 px-4 py-2 bg-white text-black rounded-md hover:bg-white/90 transition-all duration-200"
-                >
-                  Login
-                </button>
-              )}
+                
+                {user ? (
+                  <button 
+                    onClick={handleLogout} 
+                    className="flex items-center mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 trans"
+                    role="menuitem"
+                    aria-label="Sair da conta"
+                  >
+                    <LogOut className="w-5 h-5 mr-2" aria-hidden="true" />
+                    Sair
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => navigate('/login')}
+                    className="mt-4 px-4 py-2 bg-white text-black rounded-md hover:bg-white/90 transition-all "
+                    role="menuitem"
+                    aria-label="Fazer login"
+                  >
+                    Login
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </header>
   );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;

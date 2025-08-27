@@ -14,8 +14,7 @@ import {
   Target,
   Award
 } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+
 
 const HumorTracker = () => {
   const [selectedMood, setSelectedMood] = useState('');
@@ -111,29 +110,6 @@ const HumorTracker = () => {
     fetchUserData();
     setMoodEntries(mockMoodEntries);
   }, []);
-
-  const handleMoodSubmit = async () => {
-    if (!selectedMood || !selectedCause) return;
-
-    try {
-      // TODO: Implement real mood entry creation with Firebase
-      const newEntry = {
-        id: Date.now(),
-        date: new Date(),
-        mood: selectedMood,
-        cause: selectedCause,
-        notes: '',
-        intensity: 7
-      };
-
-      setMoodEntries(prev => [newEntry, ...prev]);
-      setSelectedMood('');
-      setSelectedCause('');
-      setShowMoodForm(false);
-    } catch (error) {
-      console.error('Erro ao registrar humor:', error);
-    }
-  };
 
   const getMoodColor = (mood) => {
     switch (mood) {

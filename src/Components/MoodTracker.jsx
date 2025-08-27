@@ -73,7 +73,7 @@ const MoodTracker = ({ onOpenHumorTab }) => {
 
       {/* Weekly Trends */}
       <div ref={trendsRef} className={`bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl transition ${highlightTrends ? 'ring-2 ring-white/50' : ''}`}>
-        <div className="flex items-center space-x-2 mb-6">
+        <div className="flex items-center space-x-2 mb-12">
           <TrendingUp className="w-5 h-5 text-gray-400" />
           <h2 className="text-lg font-semibold text-white">Tendência Semanal</h2>
         </div>
@@ -82,7 +82,7 @@ const MoodTracker = ({ onOpenHumorTab }) => {
         <div className="space-y-4">
           <div className="flex items-end justify-between h-32 px-2">
             {weeklyData.map((day, index) => (
-              <div key={index} className="flex flex-col items-center space-y-2 flex-1">
+              <div key={index} className="flex flex-col items-center flex-1">
                 <div className="relative w-full max-w-[20px] flex flex-col items-center space-y-1">
                   {/* Energy Bar */}
                   <div

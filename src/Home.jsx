@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from './components/Header';
-import WelcomeScreen from './components/WelcomeScreen';
-import PostCreation from './components/PostCreation';
-import SocialFeed from './components/SocialFeed';
-import SuggestedGroups from './components/SuggestedGroups';
-import MoodTracker from './components/MoodTracker';
-import TherapySessions from './components/TherapySessions.jsx'; // Re-adding import
-import InteractiveDiary from './components/InteractiveDiary'; // Re-adding import
-import HumorTracker from './Components/HumorTracker.jsx'; // Re-adding import
-import LiveChat from './components/LiveChat'; // Re-adding import
-import UserOptions from './components/UserOptions'; // Re-adding import
-import Settings from './components/Settings'; // Re-adding import
-import WelcomeTour from './components/WelcomeTour'; // Re-adding import
-import { auth, db } from './firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import WelcomeScreen from './Components/WelcomeScreen';
+import PostCreation from './Components/PostCreation';
+import SocialFeed from './Components/SocialFeed';
+import SuggestedGroups from './Components/SuggestedGroups';
+import MoodTracker from './Components/MoodTracker';
+import TherapySessions from './Components/TherapySessions';
+import InteractiveDiary from './Components/InteractiveDiary';
+import HumorTracker from './Components/HumorTracker';
+import LiveChat from './Components/LiveChat';
+import Settings from './Components/Settings';
+import Notifications from './Components/Notifications';
+import WelcomeTour from './Components/WelcomeTour';
+import { useAuth } from './contexts/AuthContext';
+import Profile from './Components/Profile';
 
 function Home() {
   const [activeTab, setActiveTab] = useState('home');
   const [showTour, setShowTour] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
 
   // Debug: Log activeTab changes
   useEffect(() => {
@@ -29,28 +29,14 @@ function Home() {
     setShowTour(true);
   };
 
-  // Fetch user data
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-      if (currentUser) {
-        try {
-          const userRef = doc(db, 'users', currentUser.uid);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            setUser({ ...currentUser, role: userSnap.data().role });
-          } else {
-            setUser(currentUser);
-          }
-        } catch (error) {
-          console.error('Erro ao buscar dados do usuário:', error);
-          setUser(currentUser);
-        }
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="loading-spinner"></div>
+        <div className="text-white ml-3">Carregando...</div>
+      </div>
+    );
+  }
 
   const renderMainContent = () => {
     switch (activeTab) {
@@ -62,6 +48,8 @@ function Home() {
             <SocialFeed />
           </>
         );
+      case 'profile':
+        return <Profile />;
       case 'sessions':
         return <TherapySessions />;
       case 'diary':
@@ -70,9 +58,9 @@ function Home() {
         return <HumorTracker />;
       case 'chat':
         return <LiveChat />;
-      case 'notifications': // Placeholder for notifications content
-        return <div className="text-white">Conteúdo de Notificações</div>;
-      case 'settings': // Settings component
+      case 'notifications':
+        return <Notifications />;
+      case 'settings':
         return <Settings />;
       default:
         return (
@@ -108,6 +96,14 @@ function Home() {
             </div>
           </aside>
         </>
+      );
+    } else if (activeTab === 'profile') {
+      return (
+        <section className="lg:col-span-12">
+          <div className="max-w-6xl mx-auto">
+            {renderMainContent()}
+          </div>
+        </section>
       );
     } else {
       return (

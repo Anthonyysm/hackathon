@@ -12,12 +12,13 @@ import {
   Save,
   X,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft
 } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('profile');
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,7 @@ const Settings = () => {
 
   // Profile settings
   const [profileSettings, setProfileSettings] = useState({
+    username: '',
     displayName: '',
     bio: '',
     location: '',
@@ -64,47 +66,66 @@ const Settings = () => {
     animations: true
   });
 
+  // Mock user data
+  const mockUserData = {
+    username: 'joao.silva',
+    displayName: 'João Silva',
+    bio: 'Psicólogo clínico especializado em terapia cognitivo-comportamental.',
+    location: 'São Paulo, SP',
+    website: 'https://joaosilva.psi.br',
+    language: 'pt-BR',
+    emailNotifications: true,
+    pushNotifications: true,
+    messageNotifications: true,
+    groupNotifications: true,
+    sessionReminders: true,
+    moodReminders: true,
+    weeklyReports: false,
+    profileVisibility: 'public',
+    showEmail: false,
+    showPhone: false,
+    allowMessages: true,
+    allowFriendRequests: true,
+    showOnlineStatus: true,
+    dataSharing: false
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const currentUser = auth.currentUser;
-        if (!currentUser) return;
-
-        const userRef = doc(db, 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
+        // Simular carregamento
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          setUserData(data);
-          
-          setProfileSettings({
-            displayName: data.displayName || currentUser.displayName || '',
-            bio: data.bio || '',
-            location: data.location || '',
-            website: data.website || '',
-            language: data.language || 'pt-BR'
-          });
+        setUserData(mockUserData);
+        
+        setProfileSettings({
+          username: mockUserData.username || '',
+          displayName: mockUserData.displayName || '',
+          bio: mockUserData.bio || '',
+          location: mockUserData.location || '',
+          website: mockUserData.website || '',
+          language: mockUserData.language || 'pt-BR'
+        });
 
-          setNotificationSettings({
-            emailNotifications: data.emailNotifications !== undefined ? data.emailNotifications : true,
-            pushNotifications: data.pushNotifications !== undefined ? data.pushNotifications : true,
-            messageNotifications: data.messageNotifications !== undefined ? data.messageNotifications : true,
-            groupNotifications: data.groupNotifications !== undefined ? data.groupNotifications : true,
-            sessionReminders: data.sessionReminders !== undefined ? data.sessionReminders : true,
-            moodReminders: data.moodReminders !== undefined ? data.moodReminders : true,
-            weeklyReports: data.weeklyReports || false
-          });
+        setNotificationSettings({
+          emailNotifications: mockUserData.emailNotifications !== undefined ? mockUserData.emailNotifications : true,
+          pushNotifications: mockUserData.pushNotifications !== undefined ? mockUserData.pushNotifications : true,
+          messageNotifications: mockUserData.messageNotifications !== undefined ? mockUserData.messageNotifications : true,
+          groupNotifications: mockUserData.groupNotifications !== undefined ? mockUserData.groupNotifications : true,
+          sessionReminders: mockUserData.sessionReminders !== undefined ? mockUserData.sessionReminders : true,
+          moodReminders: mockUserData.moodReminders !== undefined ? mockUserData.moodReminders : true,
+          weeklyReports: mockUserData.weeklyReports || false
+        });
 
-          setPrivacySettings({
-            profileVisibility: data.profileVisibility || 'public',
-            showEmail: data.showEmail || false,
-            showPhone: data.showPhone || false,
-            allowMessages: data.allowMessages !== undefined ? data.allowMessages : true,
-            allowFriendRequests: data.allowFriendRequests !== undefined ? data.allowFriendRequests : true,
-            showOnlineStatus: data.showOnlineStatus !== undefined ? data.showOnlineStatus : true,
-            dataSharing: data.dataSharing || false
-          });
-        }
+        setPrivacySettings({
+          profileVisibility: mockUserData.profileVisibility || 'public',
+          showEmail: mockUserData.showEmail || false,
+          showPhone: mockUserData.showPhone || false,
+          allowMessages: mockUserData.allowMessages !== undefined ? mockUserData.allowMessages : true,
+          allowFriendRequests: mockUserData.allowFriendRequests !== undefined ? mockUserData.allowFriendRequests : true,
+          showOnlineStatus: mockUserData.showOnlineStatus !== undefined ? mockUserData.showOnlineStatus : true,
+          dataSharing: mockUserData.dataSharing || false
+        });
       } catch (error) {
         console.error('Erro ao buscar dados do usuário:', error);
         setError('Erro ao carregar configurações');
@@ -122,16 +143,11 @@ const Settings = () => {
       setError('');
       setSuccess('');
 
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        ...profileSettings,
-        updatedAt: new Date()
-      });
+      // Simular salvamento
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       setSuccess('Configurações de perfil salvas com sucesso!');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       setError('Erro ao salvar configurações');
@@ -146,16 +162,11 @@ const Settings = () => {
       setError('');
       setSuccess('');
 
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        ...notificationSettings,
-        updatedAt: new Date()
-      });
+      // Simular salvamento
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       setSuccess('Configurações de notificação salvas com sucesso!');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       setError('Erro ao salvar configurações');
@@ -170,16 +181,30 @@ const Settings = () => {
       setError('');
       setSuccess('');
 
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        ...privacySettings,
-        updatedAt: new Date()
-      });
+      // Simular salvamento
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       setSuccess('Configurações de privacidade salvas com sucesso!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+      setError('Erro ao salvar configurações');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAppearanceSave = async () => {
+    try {
+      setSaving(true);
+      setError('');
+      setSuccess('');
+
+      // Simular salvamento
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setSuccess('Configurações de aparência salvas com sucesso!');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       setError('Erro ao salvar configurações');
@@ -207,8 +232,11 @@ const Settings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white">Carregando configurações...</div>
+      <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
+        <div className="flex items-center justify-center py-12">
+          <div className="loading-spinner"></div>
+          <span className="ml-3 text-white/70">Carregando configurações...</span>
+        </div>
       </div>
     );
   }
@@ -265,291 +293,327 @@ const Settings = () => {
       {/* Profile Settings */}
       {activeSection === 'profile' && (
         <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Configurações de Perfil</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-white/70 text-sm mb-2">Nome de Exibição</label>
-              <input
-                type="text"
-                value={profileSettings.displayName}
-                onChange={(e) => handleInputChange('profile', 'displayName', e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
-                placeholder="Seu nome"
-              />
-            </div>
+            <h3 className="text-xl font-semibold text-white mb-6">Configurações do Perfil</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Username da Plataforma
+                </label>
+                                 <input
+                   type="text"
+                   value={profileSettings.username}
+                   onChange={(e) => handleInputChange('profile', 'username', e.target.value.toLowerCase())}
+                   placeholder="Digite seu username"
+                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                 />
+                <p className="text-white/50 text-xs mt-1">Este será seu identificador único na plataforma</p>
+              </div>
 
-            <div>
-              <label className="block text-white/70 text-sm mb-2">Idioma</label>
-              <select
-                value={profileSettings.language}
-                onChange={(e) => handleInputChange('profile', 'language', e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-              >
-                <option value="pt-BR">Português (Brasil)</option>
-                <option value="en-US">English (US)</option>
-                <option value="es-ES">Español</option>
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-white/70 text-sm mb-2">Biografia</label>
-              <textarea
-                value={profileSettings.bio}
-                onChange={(e) => handleInputChange('profile', 'bio', e.target.value)}
-                rows={3}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 resize-none"
-                placeholder="Conte um pouco sobre você..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-white/70 text-sm mb-2">Localização</label>
-              <input
-                type="text"
-                value={profileSettings.location}
-                onChange={(e) => handleInputChange('profile', 'location', e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
-                placeholder="Sua localização"
-              />
-            </div>
-
-            <div>
-              <label className="block text-white/70 text-sm mb-2">Website</label>
-              <input
-                type="url"
-                value={profileSettings.website}
-                onChange={(e) => handleInputChange('profile', 'website', e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
-                placeholder="https://seu-site.com"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={handleProfileSave}
-              disabled={saving}
-              className="bg-white text-black px-6 py-2 rounded-xl font-medium hover:bg-white/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                  <span>Salvando...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Salvar</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Notification Settings */}
-      {activeSection === 'notifications' && (
-        <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Configurações de Notificação</h3>
-          
-          <div className="space-y-4">
-            {Object.entries(notificationSettings).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                <div>
-                  <span className="text-white font-medium">
-                    {key === 'emailNotifications' && 'Notificações por E-mail'}
-                    {key === 'pushNotifications' && 'Notificações Push'}
-                    {key === 'messageNotifications' && 'Notificações de Mensagens'}
-                    {key === 'groupNotifications' && 'Atividade de Grupos'}
-                    {key === 'sessionReminders' && 'Lembretes de Sessões'}
-                    {key === 'moodReminders' && 'Lembretes do Humor Tracker'}
-                    {key === 'weeklyReports' && 'Relatórios Semanais'}
-                  </span>
-                  <p className="text-sm text-white/60">
-                    {key === 'emailNotifications' && 'Receba notificações importantes por e-mail'}
-                    {key === 'pushNotifications' && 'Receba notificações no seu dispositivo'}
-                    {key === 'messageNotifications' && 'Seja notificado sobre novas mensagens'}
-                    {key === 'groupNotifications' && 'Receba atualizações dos seus grupos'}
-                    {key === 'sessionReminders' && 'Lembretes para suas sessões de terapia'}
-                    {key === 'moodReminders' && 'Lembretes para registrar seu humor'}
-                    {key === 'weeklyReports' && 'Relatórios semanais do seu progresso'}
-                  </p>
-                </div>
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Nome de Exibição
+                </label>
                 <input
-                  type="checkbox"
-                  checked={value}
-                  onChange={(e) => handleInputChange('notifications', key, e.target.checked)}
-                  className="w-5 h-5 text-white bg-white/10 border-white/20 rounded focus:ring-white/30"
+                  type="text"
+                  value={profileSettings.displayName}
+                  onChange={(e) => handleInputChange('profile', 'displayName', e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
-            ))}
-          </div>
 
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={handleNotificationSave}
-              disabled={saving}
-              className="bg-white text-black px-6 py-2 rounded-xl font-medium hover:bg-white/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                  <span>Salvando...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Salvar</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Biografia
+                </label>
+                <textarea
+                  value={profileSettings.bio}
+                  onChange={(e) => handleInputChange('profile', 'bio', e.target.value)}
+                  rows="3"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                />
+              </div>
 
-      {/* Privacy Settings */}
-      {activeSection === 'privacy' && (
-        <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Configurações de Privacidade</h3>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-white/70 text-sm mb-2">Visibilidade do Perfil</label>
-              <select
-                value={privacySettings.profileVisibility}
-                onChange={(e) => handleInputChange('privacy', 'profileVisibility', e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-              >
-                <option value="public">Público</option>
-                <option value="friends">Apenas amigos</option>
-                <option value="private">Privado</option>
-              </select>
-            </div>
-
-            <div className="space-y-4">
-              {Object.entries(privacySettings).filter(([key]) => key !== 'profileVisibility').map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                  <div>
-                    <span className="text-white font-medium">
-                      {key === 'showEmail' && 'Mostrar E-mail'}
-                      {key === 'showPhone' && 'Mostrar Telefone'}
-                      {key === 'allowMessages' && 'Permitir Mensagens'}
-                      {key === 'allowFriendRequests' && 'Permitir Solicitações de Amizade'}
-                      {key === 'showOnlineStatus' && 'Mostrar Status Online'}
-                      {key === 'dataSharing' && 'Compartilhamento de Dados'}
-                    </span>
-                    <p className="text-sm text-white/60">
-                      {key === 'showEmail' && 'Tornar seu e-mail visível para outros usuários'}
-                      {key === 'showPhone' && 'Tornar seu telefone visível para outros usuários'}
-                      {key === 'allowMessages' && 'Permitir que outros usuários te enviem mensagens'}
-                      {key === 'allowFriendRequests' && 'Permitir solicitações de amizade de outros usuários'}
-                      {key === 'showOnlineStatus' && 'Mostrar quando você está online'}
-                      {key === 'dataSharing' && 'Compartilhar dados anônimos para melhorar o serviço'}
-                    </p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">
+                    Localização
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={value}
-                    onChange={(e) => handleInputChange('privacy', key, e.target.checked)}
-                    className="w-5 h-5 text-white bg-white/10 border-white/20 rounded focus:ring-white/30"
+                    type="text"
+                    value={profileSettings.location}
+                    onChange={(e) => handleInputChange('profile', 'location', e.target.value)}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={handlePrivacySave}
-              disabled={saving}
-              className="bg-white text-black px-6 py-2 rounded-xl font-medium hover:bg-white/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                  <span>Salvando...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Salvar</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Appearance Settings */}
-      {activeSection === 'appearance' && (
-        <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Configurações de Aparência</h3>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-white/70 text-sm mb-2">Tema</label>
-              <select
-                value={appearanceSettings.theme}
-                onChange={(e) => handleInputChange('appearance', 'theme', e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-              >
-                <option value="dark">Escuro</option>
-                <option value="light">Claro</option>
-                <option value="auto">Automático</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-white/70 text-sm mb-2">Tamanho da Fonte</label>
-              <select
-                value={appearanceSettings.fontSize}
-                onChange={(e) => handleInputChange('appearance', 'fontSize', e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-              >
-                <option value="small">Pequeno</option>
-                <option value="medium">Médio</option>
-                <option value="large">Grande</option>
-              </select>
-            </div>
-
-            <div className="space-y-4">
-              {Object.entries(appearanceSettings).filter(([key]) => !['theme', 'fontSize'].includes(key)).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                  <div>
-                    <span className="text-white font-medium">
-                      {key === 'compactMode' && 'Modo Compacto'}
-                      {key === 'animations' && 'Animações'}
-                    </span>
-                    <p className="text-sm text-white/60">
-                      {key === 'compactMode' && 'Interface mais compacta para economizar espaço'}
-                      {key === 'animations' && 'Habilitar animações e transições'}
-                    </p>
-                  </div>
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">
+                    Website
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={value}
-                    onChange={(e) => handleInputChange('appearance', key, e.target.checked)}
-                    className="w-5 h-5 text-white bg-white/10 border-white/20 rounded focus:ring-white/30"
+                    type="url"
+                    value={profileSettings.website}
+                    onChange={(e) => handleInputChange('profile', 'website', e.target.value)}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
-              ))}
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Idioma
+                </label>
+                <select
+                  value={profileSettings.language}
+                  onChange={(e) => handleInputChange('profile', 'language', e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="pt-BR">Português (Brasil)</option>
+                  <option value="en-US">English (US)</option>
+                  <option value="es-ES">Español</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleProfileSave}
+                  disabled={saving}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                >
+                  {saving ? (
+                    <>
+                      <div className="loading-spinner-small"></div>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Salvar Perfil</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={() => setSuccess('Configurações de aparência salvas!')}
-              className="bg-white text-black px-6 py-2 rounded-xl font-medium hover:bg-white/90 transition-all duration-300 flex items-center space-x-2"
-            >
-              <Save className="w-4 h-4" />
-              <span>Salvar</span>
-            </button>
+        {/* Notification Settings */}
+        {activeSection === 'notifications' && (
+          <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-xl font-semibold text-white mb-6">Configurações de Notificação</h3>
+            
+            <div className="space-y-6">
+              {[
+                { key: 'emailNotifications', label: 'Notificações por Email', description: 'Receber notificações importantes por email' },
+                { key: 'pushNotifications', label: 'Notificações Push', description: 'Receber notificações no dispositivo' },
+                { key: 'messageNotifications', label: 'Mensagens', description: 'Notificar sobre novas mensagens' },
+                { key: 'groupNotifications', label: 'Atividade em Grupos', description: 'Notificar sobre atividades nos grupos' },
+                { key: 'sessionReminders', label: 'Lembretes de Sessão', description: 'Lembrar sobre sessões agendadas' },
+                { key: 'moodReminders', label: 'Lembretes de Humor', description: 'Lembrar de registrar seu humor diário' },
+                { key: 'weeklyReports', label: 'Relatórios Semanais', description: 'Receber resumo semanal de atividades' }
+              ].map((setting) => (
+                <div key={setting.key} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div>
+                    <h4 className="text-white font-medium">{setting.label}</h4>
+                    <p className="text-white/60 text-sm">{setting.description}</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={notificationSettings[setting.key]}
+                      onChange={(e) => handleInputChange('notifications', setting.key, e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              ))}
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleNotificationSave}
+                  disabled={saving}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                >
+                  {saving ? (
+                    <>
+                      <div className="loading-spinner-small"></div>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Salvar Notificações</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
+        )}
+
+        {/* Privacy Settings */}
+        {activeSection === 'privacy' && (
+          <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-xl font-semibold text-white mb-6">Configurações de Privacidade</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Visibilidade do Perfil
+                </label>
+                <select
+                  value={privacySettings.profileVisibility}
+                  onChange={(e) => handleInputChange('privacy', 'profileVisibility', e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="public">Público</option>
+                  <option value="friends">Apenas Amigos</option>
+                  <option value="private">Privado</option>
+                </select>
+              </div>
+
+              {[
+                { key: 'showEmail', label: 'Mostrar Email', description: 'Permitir que outros vejam seu email' },
+                { key: 'showPhone', label: 'Mostrar Telefone', description: 'Permitir que outros vejam seu telefone' },
+                { key: 'allowMessages', label: 'Permitir Mensagens', description: 'Permitir que outros te enviem mensagens' },
+                { key: 'allowFriendRequests', label: 'Permitir Solicitações', description: 'Permitir solicitações de amizade' },
+                { key: 'showOnlineStatus', label: 'Mostrar Status Online', description: 'Mostrar quando você está online' },
+                { key: 'dataSharing', label: 'Compartilhar Dados', description: 'Permitir compartilhamento de dados para pesquisas' }
+              ].map((setting) => (
+                <div key={setting.key} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div>
+                    <h4 className="text-white font-medium">{setting.label}</h4>
+                    <p className="text-white/60 text-sm">{setting.description}</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={privacySettings[setting.key]}
+                      onChange={(e) => handleInputChange('privacy', setting.key, e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              ))}
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handlePrivacySave}
+                  disabled={saving}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                >
+                  {saving ? (
+                    <>
+                      <div className="loading-spinner-small"></div>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Salvar Privacidade</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Appearance Settings */}
+        {activeSection === 'appearance' && (
+          <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-xl font-semibold text-white mb-6">Configurações de Aparência</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Tema
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: 'dark', label: 'Escuro', description: 'Tema padrão escuro' },
+                    { value: 'light', label: 'Claro', description: 'Tema claro (em breve)' },
+                    { value: 'auto', label: 'Automático', description: 'Seguir sistema' }
+                  ].map((theme) => (
+                    <button
+                      key={theme.value}
+                      onClick={() => handleInputChange('appearance', 'theme', theme.value)}
+                      className={`p-4 rounded-lg border transition-all ${
+                        appearanceSettings.theme === theme.value
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-white/20 bg-white/5 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="text-white font-medium">{theme.label}</div>
+                      <div className="text-white/60 text-xs">{theme.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Tamanho da Fonte
+                </label>
+                <select
+                  value={appearanceSettings.fontSize}
+                  onChange={(e) => handleInputChange('appearance', 'fontSize', e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                  <option value="small">Pequeno</option>
+                  <option value="medium">Médio</option>
+                  <option value="large">Grande</option>
+                </select>
+              </div>
+
+              {[
+                { key: 'compactMode', label: 'Modo Compacto', description: 'Interface mais densa com menos espaçamento' },
+                { key: 'animations', label: 'Animações', description: 'Habilitar animações da interface' }
+              ].map((setting) => (
+                <div key={setting.key} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                  <div>
+                    <h4 className="text-white font-medium">{setting.label}</h4>
+                    <p className="text-white/60 text-sm">{setting.description}</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appearanceSettings[setting.key]}
+                      onChange={(e) => handleInputChange('appearance', setting.key, e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              ))}
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleAppearanceSave}
+                  disabled={saving}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                >
+                  {saving ? (
+                    <>
+                      <div className="loading-spinner-small"></div>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Salvar Aparência</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
 export default Settings;

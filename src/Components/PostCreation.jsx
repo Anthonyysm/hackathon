@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Globe, EyeOff, Image as ImageIcon, X, Send } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import React, { useState, useCallback } from 'react';
+import { Globe, EyeOff, Image as ImageIcon, X, Send, Hash, Smile, Plus } from 'lucide-react';
+import Card from './ui/Card';
+import Input from './ui/Input';
+import ErrorMessage from './ui/ErrorMessage';
 
 const PostCreation = ({ onPostCreated }) => {
+  const [showForm, setShowForm] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedMood, setSelectedMood] = useState('');
   const [postText, setPostText] = useState('');
@@ -11,21 +13,32 @@ const PostCreation = ({ onPostCreated }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState('');
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [showMoodSelector, setShowMoodSelector] = useState(false);
 
   const moods = [
-    { emoji: '😊', label: 'Feliz', value: 'happy' },
-    { emoji: '😔', label: 'Triste', value: 'sad' },
-    { emoji: '😡', label: 'Irritado', value: 'angry' },
-    { emoji: '😰', label: 'Ansioso', value: 'anxious' },
-    { emoji: '😌', label: 'Calmo', value: 'calm' },
-    { emoji: '😴', label: 'Cansado', value: 'tired' }
+    { emoji: '😊', label: 'Feliz', value: 'happy', color: 'from-green-400 to-green-600' },
+    { emoji: '😔', label: 'Triste', value: 'sad', color: 'from-blue-400 to-blue-600' },
+    { emoji: '😡', label: 'Irritado', value: 'angry', color: 'from-red-400 to-red-600' },
+    { emoji: '😰', label: 'Ansioso', value: 'anxious', color: 'from-yellow-400 to-yellow-600' },
+    { emoji: '😌', label: 'Calmo', value: 'calm', color: 'from-purple-400 to-purple-600' },
+    { emoji: '😴', label: 'Cansado', value: 'tired', color: 'from-gray-400 to-gray-600' },
+    { emoji: '🤗', label: 'Agradecido', value: 'grateful', color: 'from-pink-400 to-pink-600' },
+    { emoji: '😤', label: 'Determinado', value: 'determined', color: 'from-orange-400 to-orange-600' }
   ];
 
-  const handleImageSelect = (e) => {
+  const handleImageSelect = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError('A imagem deve ter menos de 5MB');
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        setError('A imagem deve ter menos de 10MB');
+        return;
+      }
+
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        setError('Formato de imagem não suportado. Use JPEG, PNG, GIF ou WebP');
         return;
       }
 
@@ -37,21 +50,35 @@ const PostCreation = ({ onPostCreated }) => {
       reader.readAsDataURL(file);
       setError('');
     }
-  };
+  }, []);
 
-  const removeImage = () => {
+  const removeImage = useCallback(() => {
     setSelectedImage(null);
     setImagePreview(null);
-  };
+  }, []);
 
-  const handleSubmit = async () => {
-    if (!postText.trim()) {
-      setError('Por favor, escreva algo para compartilhar');
-      return;
+  const addTag = useCallback((tag) => {
+    const cleanTag = tag.trim().toLowerCase();
+    if (cleanTag && !tags.includes(cleanTag) && tags.length < 5) {
+      setTags([...tags, cleanTag]);
+      setTagInput('');
     }
+  }, [tags]);
 
-    if (!auth.currentUser) {
-      setError('Você precisa estar logado para criar um post');
+  const removeTag = useCallback((tagToRemove) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  }, [tags]);
+
+  const handleTagInputKeyPress = useCallback((e) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      addTag(tagInput);
+    }
+  }, [tagInput, addTag]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!postText.trim()) {
+      setError('Por favor, escreva algo antes de postar');
       return;
     }
 
@@ -59,190 +86,264 @@ const PostCreation = ({ onPostCreated }) => {
     setError('');
 
     try {
-      let imageUrl = null;
-      
-      // TODO: Implement image upload to Firebase Storage
-      if (selectedImage) {
-        // Simulate upload for now
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        imageUrl = 'https://via.placeholder.com/400x300'; // Placeholder
-      }
-
-      // Fetch author display name if not anonymous
-      let authorName = 'Usuário';
-      if (!isAnonymous) {
-        try {
-          const userRef = doc(db, 'users', auth.currentUser.uid);
-          const snap = await getDoc(userRef);
-          if (snap.exists()) {
-            authorName = snap.data().displayName || authorName;
-          }
-        } catch {}
-      }
-
+      // Simulação de API call - substitua pela sua lógica de backend
       const postData = {
-        userId: auth.currentUser.uid,
-        author: authorName,
-        content: postText.trim(),
-        mood: selectedMood ? { emoji: '🙂', label: selectedMood } : undefined,
+        text: postText.trim(),
         isAnonymous,
-        image: imageUrl,
-        createdAt: serverTimestamp(),
-        likes: 0,
-        comments: 0,
-        shares: 0
+        selectedMood,
+        tags,
+        image: selectedImage,
+        timestamp: new Date().toISOString()
       };
 
-      const docRef = await addDoc(collection(db, 'posts'), postData);
-      
+      // Simular delay de API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Chamar callback se fornecido
+      if (onPostCreated) {
+        onPostCreated(postData);
+      }
+
       // Reset form
       setPostText('');
       setSelectedMood('');
+      setTags([]);
       setSelectedImage(null);
       setImagePreview(null);
+      setIsAnonymous(false);
       
-      // Notify parent component
-      if (onPostCreated) {
-        onPostCreated({
-          id: docRef.id,
-          ...postData
-        });
-      }
-      
+      // Ocultar o formulário após criar o post
+      setShowForm(false);
     } catch (error) {
-      console.error('Erro ao criar post:', error);
       setError('Erro ao criar post. Tente novamente.');
     } finally {
       setIsPosting(false);
     }
-  };
+  }, [postText, isAnonymous, selectedMood, tags, selectedImage, onPostCreated]);
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  const resetForm = useCallback(() => {
+    setPostText('');
+    setSelectedMood('');
+    setTags([]);
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsAnonymous(false);
+    setError('');
+    setShowForm(false);
+  }, []);
+
+  // Se o formulário não estiver visível, mostrar apenas o botão
+  if (!showForm) {
+    return (
+      <Card variant="glass" padding="lg" hover className="mb-8">
+        <Card.Content className="text-center py-8">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center space-x-3 px-6 py-4 bg-white/10 border border-white/20 rounded-xl text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black group"
+          >
+            <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            <span className="text-lg font-medium">Criar Novo Post</span>
+          </button>
+          <p className="text-white/60 mt-3 text-sm">
+            Compartilhe seus pensamentos, sentimentos ou experiências com a comunidade
+          </p>
+        </Card.Content>
+      </Card>
+    );
+  }
 
   return (
-    <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
-      <div className="space-y-4">
+    <Card variant="glass" padding="lg" hover className="mb-8">
+      <Card.Header>
+        <div className="flex items-center justify-between">
+          <div>
+            <Card.Title>Criar Novo Post</Card.Title>
+            <Card.Description>
+              Compartilhe seus pensamentos, sentimentos ou experiências com a comunidade
+            </Card.Description>
+          </div>
+          <button
+            onClick={resetForm}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+            aria-label="Fechar formulário"
+          >
+            <X className="w-5 h-5 text-white/60" />
+          </button>
+        </div>
+      </Card.Header>
+
+      <Card.Content>
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
-            {error}
-          </div>
+          <ErrorMessage
+            message={error}
+            variant="destructive"
+            dismissible
+            onDismiss={() => setError('')}
+            className="mb-4"
+          />
         )}
 
-        {/* Post Input */}
-        <textarea
-          value={postText}
-          onChange={(e) => setPostText(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Compartilhe o que está sentindo hoje..."
-          className="w-full bg-gray-800/50 border border-gray-600/50 rounded-xl p-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50 transition-all duration-200 min-h-[120px]"
-        />
-
-        {/* Image Preview */}
-        {imagePreview && (
-          <div className="relative">
-            <img 
-              src={imagePreview} 
-              alt="Preview" 
-              className="w-full max-h-64 object-cover rounded-lg"
-            />
-            <button
-              onClick={removeImage}
-              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 p-1 rounded-full transition-colors"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        )}
-
-        {/* Privacy Toggle */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsAnonymous(false)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-200 ${
-                !isAnonymous
-                  ? 'bg-white/10 text-white border border-white/20'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/30'
-              }`}
-            >
-              <Globe className="w-4 h-4" />
-              <span>Público</span>
-            </button>
-            <button
-              onClick={() => setIsAnonymous(true)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-200 ${
-                isAnonymous
-                  ? 'bg-white/10 text-white border border-white/20'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/30'
-              }`}
-            >
-              <EyeOff className="w-4 h-4" />
-              <span>Anônimo</span>
-            </button>
-          </div>
-
-          {/* Image Upload */}
-          <label className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-800/30 hover:bg-gray-700/30 text-gray-300 hover:text-white transition-all duration-200 cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-            <ImageIcon className="w-4 h-4" />
-            <span>Imagem</span>
-          </label>
+        {/* Post Text Input */}
+        <div className="mb-6">
+          <Input
+            as="textarea"
+            placeholder="O que você gostaria de compartilhar hoje?"
+            value={postText}
+            onChange={(e) => setPostText(e.target.value)}
+            variant="glass"
+            size="lg"
+            className="min-h-[120px] resize-none"
+            label="Seu post"
+            helperText="Seja autêntico e respeitoso com a comunidade"
+          />
         </div>
 
-        {/* Mood Selector */}
-        <div className="space-y-3">
-          <p className="text-sm text-gray-300">Como você está se sentindo?</p>
-          <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+        {/* Mood Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-white/80 mb-3">
+            Como você está se sentindo?
+          </label>
+          <div className="grid grid-cols-4 gap-3">
             {moods.map((mood) => (
               <button
                 key={mood.value}
-                onClick={() => setSelectedMood(mood.value)}
-                className={`flex flex-col items-center space-y-1 p-3 rounded-xl transition-all duration-200 min-w-[70px] ${
+                onClick={() => setSelectedMood(selectedMood === mood.value ? '' : mood.value)}
+                className={`p-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black ${
                   selectedMood === mood.value
-                    ? 'bg-white/10 border border-white/20 scale-105'
-                    : 'bg-gray-800/30 hover:bg-gray-700/30 hover:scale-105'
+                    ? 'border-white/50 bg-white/10'
+                    : 'border-white/20 hover:border-white/30 hover:bg-white/5'
                 }`}
+                aria-label={`Selecionar humor: ${mood.label}`}
               >
-                <span className="text-2xl">{mood.emoji}</span>
-                <span className="text-xs text-gray-400">{mood.label}</span>
+                <div className="text-center">
+                  <div className="text-2xl mb-1">{mood.emoji}</div>
+                  <div className="text-xs text-white/70">{mood.label}</div>
+                </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Share Button */}
-        <div className="flex justify-end">
-          <button 
-            onClick={handleSubmit}
-            disabled={isPosting || !postText.trim()}
-            className="bg-gradient-to-r from-white to-gray-200 text-black px-8 py-3 rounded-xl font-medium hover:from-gray-200 hover:to-gray-300 transform hover:scale-105 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:transform-none flex items-center space-x-2"
-          >
-            {isPosting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                <span>Postando...</span>
-              </>
+        {/* Image Upload */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-white/80 mb-3">
+            Adicionar imagem (opcional)
+          </label>
+          <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-white/30 transition-colors">
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-w-full h-48 object-cover rounded-lg mx-auto"
+                />
+                <button
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label="Remover imagem"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
             ) : (
-              <>
-                <Send className="w-4 h-4" />
-                <span>Compartilhar</span>
-              </>
+              <div>
+                <ImageIcon className="w-12 h-12 text-white/40 mx-auto mb-3" />
+                <p className="text-white/60 mb-3">
+                  Clique para selecionar uma imagem
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="inline-flex items-center px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50"
+                >
+                  Selecionar Imagem
+                </label>
+              </div>
             )}
-          </button>
+          </div>
         </div>
-      </div>
-    </div>
+
+        {/* Tags Input */}
+        <div className="mb-6">
+          <Input
+            placeholder="Adicionar tags (pressione Enter)"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyPress={handleTagInputKeyPress}
+            variant="glass"
+            size="default"
+            label="Tags"
+            helperText="Adicione até 5 tags para categorizar seu post"
+            rightIcon={Hash}
+            onRightIconClick={() => addTag(tagInput)}
+          />
+          
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-3 py-1 bg-white/10 border border-white/20 rounded-full text-sm text-white"
+                >
+                  #{tag}
+                  <button
+                    onClick={() => removeTag(tag)}
+                    className="ml-2 p-0.5 hover:bg-white/20 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+                    aria-label={`Remover tag ${tag}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Anonymous Toggle */}
+        <div className="mb-6">
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="w-4 h-4 text-white bg-white/10 border-white/20 rounded focus:ring-2 focus:ring-white/50"
+            />
+            <div className="flex items-center space-x-2">
+              <EyeOff className="w-4 h-4 text-white/60" />
+              <span className="text-sm text-white/70">Postar anonimamente</span>
+            </div>
+          </label>
+        </div>
+      </Card.Content>
+
+      <Card.Footer>
+        <button
+          onClick={handleSubmit}
+          disabled={isPosting || !postText.trim()}
+          className="flex items-center space-x-2 px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black"
+          aria-label={isPosting ? 'Criando post...' : 'Criar post'}
+        >
+          {isPosting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+              <span>Criando...</span>
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              <span>Publicar Post</span>
+            </>
+          )}
+        </button>
+      </Card.Footer>
+    </Card>
   );
 };
 

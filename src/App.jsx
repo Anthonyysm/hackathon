@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
 import { Heart, Users, Target, Sparkles, Brain, MessageCircle, Shield, Mail, Phone, MapPin, Instagram, Facebook, Twitter, Linkedin } from 'lucide-react';
 import Navbar from './Components/Navbar'; 
 import HeroSection from './Components/HeroSection';
@@ -9,8 +9,11 @@ import Footer from './Components/Footer';
 import LightRays from './Components/LightRays';
 import { useNavigate } from 'react-router-dom';
 
-// Hook otimizado para detectar elementos em view
-const useInView = (threshold = 0.1) => {
+// Lazy loading para componentes pesados
+const LazyLightRays = lazy(() => import('./Components/LightRays'));
+
+// Hook otimizado para detectar elementos em view com Intersection Observer
+const useInView = (threshold = 0.1, rootMargin = '50px') => {
   const [ref, setRef] = useState(null);
   const [inView, setInView] = useState(false);
 
@@ -23,17 +26,28 @@ const useInView = (threshold = 0.1) => {
           setInView(true);
         }
       },
-      { threshold, rootMargin: '50px' }
+      { threshold, rootMargin }
     );
 
     observer.observe(ref);
     return () => observer.disconnect();
-  }, [ref, threshold]);
+  }, [ref, threshold, rootMargin]);
 
   return [setRef, inView];
 };
 
-function App() {
+// Componente de loading otimizado
+const LoadingSpinner = React.memo(() => (
+  <div className="flex items-center justify-center py-8">
+    <div className="loading-spinner"></div>
+    <span className="ml-3 text-white/70">Carregando...</span>
+  </div>
+));
+
+LoadingSpinner.displayName = 'LoadingSpinner';
+
+// Componente principal otimizado
+const App = React.memo(() => {
   const [scrolled, setScrolled] = useState(false);
   const [servicesRef, servicesInView] = useInView(0.2);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -107,8 +121,24 @@ function App() {
     }
   }, []);
 
+  const handleTestimonialChange = useCallback((index) => {
+    setActiveTestimonial(index);
+  }, []);
+
+  const handleLoginClick = useCallback(() => {
+    navigate('/login');
+  }, [navigate]);
+
+  const handleRegisterClick = useCallback(() => {
+    navigate('/register');
+  }, [navigate]);
+
   useEffect(() => {
-    document.documentElement.style.scrollBehavior = 'smooth';
+    // Configurar scroll suave apenas se suportado
+    if ('scrollBehavior' in document.documentElement.style) {
+      document.documentElement.style.scrollBehavior = 'smooth';
+    }
+    
     window.addEventListener('scroll', handleScroll, { passive: true });
     
     // Auto-rotate testimonials com intervalo maior para melhor performance
@@ -118,7 +148,9 @@ function App() {
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      document.documentElement.style.scrollBehavior = 'auto';
+      if ('scrollBehavior' in document.documentElement.style) {
+        document.documentElement.style.scrollBehavior = 'auto';
+      }
       if (testimonialInterval.current) {
         clearInterval(testimonialInterval.current);
       }
@@ -127,8 +159,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
-      {/* LightRays Background para efeito de glass */}
-      <LightRays />
+      {/* Skip link para acessibilidade */}
+      <a href="#main-content" className="skip-link sr-only focus:not-sr-only">
+        Pular para o conteúdo principal
+      </a>
+
+      {/* LightRays Background com lazy loading */}
+      <Suspense fallback={<LoadingSpinner />}>
+        <LazyLightRays />
+      </Suspense>
 
       {/* Navbar Component */}
       <Navbar scrolled={scrolled} scrollToSection={scrollToSection} />
@@ -136,183 +175,194 @@ function App() {
       {/* Hero Section Component */}
       <HeroSection scrollToSection={scrollToSection} />
 
-      {/* Services Section */}
-      <section id="services" ref={servicesRef} className="relative z-10 py-16 md:py-20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className={`text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white transition-all duration-700 transform ${
-              servicesInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
-            }`}>
-              Como Funciona
-            </h2>
-            <p className={`text-lg md:text-xl text-white/70 max-w-2xl mx-auto transition-all duration-700 transform ${
-              servicesInView ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-            }`} style={{ transitionDelay: '0.3s' }}>
-              Descubra como o Sereno pode transformar sua jornada de saúde mental através da tecnologia e comunidade.
-            </p>
-          </div>
+      {/* Main Content */}
+      <main id="main-content" className="relative z-10">
+        {/* Services Section */}
+        <section id="services" ref={servicesRef} className="section-padding">
+          <div className="container-responsive">
+            <div className="text-center mb-12 md:mb-16">
+              <h2 className={`text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white transition-all duration-700 transform ${
+                servicesInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
+              }`}>
+                Como Funciona
+              </h2>
+              <p className={`text-lg md:text-xl text-white/70 max-w-2xl mx-auto transition-all duration-700 transform ${
+                servicesInView ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+              }`} style={{ transitionDelay: '0.3s' }}>
+                Descubra como o Sereno pode transformar sua jornada de saúde mental através da tecnologia e comunidade.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {features.map((feature, index) => (
-              <FeatureCard
-                key={index}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.description}
-                delay={index * 200 + 300}
-                inView={servicesInView}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="relative z-10">
-        <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
-      </div>
-
-      {/* Community Section */}
-      <section id="projects" className="relative z-10 py-16 md:py-20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
-              Nossa Comunidade
-            </h2>
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
-              Conheça os grupos de apoio e espaços de conexão que fazem do Sereno um lugar especial.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            {communityGroups.map((item, index) => (
-              <CommunityCard
-                key={index}
-                title={item.title}
-                desc={item.desc}
-                icon={item.icon}
-                index={index}
-              />
-            ))}
-          </div>
-          
-          <div className="text-center mt-12">
-            <button className="border border-white/30 text-white px-8 py-3 rounded-2xl transition-all duration-300 hover:bg-white/5 text-base font-light tracking-wide backdrop-blur-md">
-              Ver Todos os Grupos
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="relative z-10">
-        <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
-      </div>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="relative z-10 py-16 md:py-20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
-              O Que Nossos Usuários Dizem
-            </h2>
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
-              Histórias reais de pessoas que encontraram apoio e transformação através do Sereno.
-            </p>
-          </div>
-          
-          <div className="max-w-4xl mx-auto relative">
-            <TestimonialCard {...testimonials[activeTestimonial]} />
-            
-            <div className="flex justify-center mt-8 space-x-3">
-              {testimonials.map((_, index) => (
-                <button
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+              {features.map((feature, index) => (
+                <FeatureCard
                   key={index}
-                  onClick={() => setActiveTestimonial(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
-                    index === activeTestimonial ? 'bg-white scale-125' : 'bg-white/30 hover:bg-white/50'
-                  }`}
-                  aria-label={`Ver depoimento ${index + 1}`}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                  delay={index * 200 + 300}
+                  inView={servicesInView}
                 />
               ))}
             </div>
           </div>
+        </section>
+
+        {/* Divider */}
+        <div className="relative z-10">
+          <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
         </div>
-      </section>
 
-      {/* Divider */}
-      <div className="relative z-10">
-        <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
-      </div>
-
-      {/* About Section */}
-      <section id="about" className="relative z-10 py-16 md:py-20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="flex flex-col lg:flex-row items-center gap-12 md:gap-16">
-            <div className="flex-1">
+        {/* Community Section */}
+        <section id="projects" className="section-padding">
+          <div className="container-responsive">
+            <div className="text-center mb-12 md:mb-16">
               <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
-                Nossa Missão
+                Nossa Comunidade
               </h2>
-              <p className="text-lg md:text-xl text-white/70 mb-6 leading-relaxed">
-                O Sereno nasceu da necessidade de democratizar o acesso à saúde mental. 
-                Acreditamos que todos merecem ter um espaço seguro para compartilhar, 
-                se conectar e receber apoio especializado quando necessário.
+              <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
+                Conheça os grupos de apoio e espaços de conexão que fazem do Sereno um lugar especial.
               </p>
-              <p className="text-lg md:text-xl text-white/70 mb-8 leading-relaxed">
-                Nossa plataforma combina tecnologia, comunidade e profissionais verificados 
-                para criar um ecossistema completo de cuidado mental, onde cada pessoa 
-                pode encontrar o suporte que precisa para evoluir.
-              </p>
-              <button className="border border-white/30 text-white px-8 py-3 rounded-2xl transition-all duration-300 hover:bg-white/5 text-base font-light tracking-wide backdrop-blur-md">
-                Conheça Nossa História
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+              {communityGroups.map((item, index) => (
+                <CommunityCard
+                  key={index}
+                  title={item.title}
+                  desc={item.desc}
+                  icon={item.icon}
+                  index={index}
+                />
+              ))}
+            </div>
+            
+            <div className="text-center mt-12">
+              <button 
+                className="btn-secondary px-8 py-3 text-base font-light tracking-wide backdrop-blur-md"
+                aria-label="Ver todos os grupos de apoio disponíveis"
+              >
+                Ver Todos os Grupos
               </button>
             </div>
-            <div className="flex-1">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
-                  <Shield className="w-12 h-12 text-white/80" />
-                </div>
-                <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
-                  <Heart className="w-12 h-12 text-white/80" />
-                </div>
-                <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
-                  <Brain className="w-12 h-12 text-white/80" />
-                </div>
-                <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
-                  <Users className="w-12 h-12 text-white/80" />
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="relative z-10">
+          <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
+        </div>
+
+        {/* Testimonials Section */}
+        <section id="testimonials" className="section-padding">
+          <div className="container-responsive">
+            <div className="text-center mb-12 md:mb-16">
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
+                O Que Nossos Usuários Dizem
+              </h2>
+              <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
+                Histórias reais de pessoas que encontraram apoio e transformação através do Sereno.
+              </p>
+            </div>
+            
+            <div className="max-w-4xl mx-auto relative">
+              <TestimonialCard {...testimonials[activeTestimonial]} />
+              
+              <div className="flex justify-center mt-8 space-x-3" role="tablist" aria-label="Navegação de depoimentos">
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleTestimonialChange(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-500 ${
+                      index === activeTestimonial ? 'bg-white scale-125' : 'bg-white/30 hover:bg-white/50'
+                    }`}
+                    aria-label={`Ver depoimento ${index + 1} de ${testimonials.length}`}
+                    aria-selected={index === activeTestimonial}
+                    role="tab"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="relative z-10">
+          <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
+        </div>
+
+        {/* About Section */}
+        <section id="about" className="section-padding">
+          <div className="container-responsive">
+            <div className="flex flex-col lg:flex-row items-center gap-12 md:gap-16">
+              <div className="flex-1">
+                <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
+                  Nossa Missão
+                </h2>
+                <p className="text-lg md:text-xl text-white/70 mb-6 leading-relaxed">
+                  O Sereno nasceu da necessidade de democratizar o acesso à saúde mental. 
+                  Acreditamos que todos merecem ter um espaço seguro para compartilhar, 
+                  se conectar e receber apoio especializado quando necessário.
+                </p>
+                <p className="text-lg md:text-xl text-white/70 mb-8 leading-relaxed">
+                  Nossa plataforma combina tecnologia, comunidade e profissionais verificados 
+                  para criar um ecossistema completo de cuidado mental, onde cada pessoa 
+                  pode encontrar o suporte que precisa para evoluir.
+                </p>
+                <button 
+                  className="btn-secondary px-8 py-3 text-base font-light tracking-wide backdrop-blur-md"
+                  aria-label="Conhecer a história completa do Sereno"
+                >
+                  Conheça Nossa História
+                </button>
+              </div>
+              <div className="flex-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
+                    <Shield className="w-12 h-12 text-white/80" aria-hidden="true" />
+                  </div>
+                  <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
+                    <Heart className="w-12 h-12 text-white/80" aria-hidden="true" />
+                  </div>
+                  <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
+                    <Brain className="w-12 h-12 text-white/80" aria-hidden="true" />
+                  </div>
+                  <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center">
+                    <Users className="w-12 h-12 text-white/80" aria-hidden="true" />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Divider */}
+        <div className="relative z-10">
+          <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
         </div>
-      </section>
 
-      {/* Divider */}
-      <div className="relative z-10">
-        <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-8 md:mx-16 lg:mx-32"></div>
-      </div>
+        {/* Contact Section */}
+        <section id="contact" className="section-padding">
+          <div className="container-responsive">
+            <div className="text-center mb-12 md:mb-16">
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
+                Vamos Conversar
+              </h2>
+              <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
+                Entre em contato e vamos conversar sobre como o Sereno pode ajudar você ou sua organização.
+              </p>
+            </div>
 
-      {/* Contact Section */}
-      <section id="contact" className="relative z-10 py-16 md:py-20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extralight mb-6 text-white">
-              Vamos Conversar
-            </h2>
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
-              Entre em contato e vamos conversar sobre como o Sereno pode ajudar você ou sua organização.
-            </p>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
+            <div className="max-w-2xl mx-auto">
+              <div className="glass-card p-8">
                 <h3 className="text-2xl font-light mb-6 text-white text-center">Acesse sua Conta</h3>
                 
                 {/* Botão de Login */}
                 <div className="space-y-4">
                   <button 
-                    className="w-full bg-white text-black py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/90 text-base tracking-wide backdrop-blur-md"
-                    onClick={() => { navigate('/login'); }}
+                    className="w-full bg-white text-black py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/90 text-base tracking-wide backdrop-blur-md focus-ring"
+                    onClick={handleLoginClick}
+                    aria-label="Fazer login na plataforma Sereno"
                   >
                     Fazer Login
                   </button>
@@ -327,8 +377,9 @@ function App() {
                   </div>
                   
                   <button 
-                    className="w-full bg-transparent border border-white/30 text-white py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/5 text-base tracking-wide backdrop-blur-md"
-                    onClick={() => { navigate('/register'); }}
+                    className="w-full bg-transparent border border-white/30 text-white py-4 rounded-xl font-light transition-all duration-300 hover:bg-white/5 text-base tracking-wide backdrop-blur-md focus-ring"
+                    onClick={handleRegisterClick}
+                    aria-label="Criar nova conta na plataforma Sereno"
                   >
                     Criar Conta
                   </button>
@@ -338,14 +389,17 @@ function App() {
                   Comece sua jornada de saúde mental hoje mesmo
                 </p>
               </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       {/* Footer Component */}
       <Footer />
     </div>
   );
-}
+});
+
+App.displayName = 'App';
 
 export default App;
