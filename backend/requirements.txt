@@ -20,6 +20,7 @@ daphne==4.2.1
 Django==5.2.5
 django-cors==0.1
 django-cors-headers==4.7.0
+django-extensions==4.1
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 firebase_admin==7.1.0
@@ -56,9 +57,11 @@ pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycodestyle==2.8.0
 pycparser==2.22
+pydotplus==2.0.2
 pyflakes==2.4.0
 PyJWT==2.10.1
 pyOpenSSL==25.1.0
+pyparsing==3.2.3
 redis==6.4.0
 requests==2.32.5
 rsa==4.9.1
