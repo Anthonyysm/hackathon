@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -96,6 +97,24 @@ DATABASES = {
     }
 }
 
+with open(BASE_DIR / "serviceAccountKey.json") as f:
+    secrets = json.load(f)
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': secrets["db"]["NAME"],
+        'USER': secrets["db"]["USER"],
+        'PASSWORD': secrets["db"]["PASSWORD"],
+        'HOST': secrets["db"]["HOST"],
+        'PORT': secrets["db"]["PORT"],
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
+    }
+}
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -151,7 +170,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": ["redis://default:hksz7xIE3XIlTAYMjAWi2KlyOU1ISRU0@redis-12646.crce207.sa-east-1-2.ec2.redns.redis-cloud.com:12646"],
         },
     },
 }
