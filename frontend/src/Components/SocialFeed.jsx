@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, MoreVertical, User, Clock, Hash, Edit3, Trash2, Flag, ThumbsUp } from 'lucide-react';
+import { Heart, MoreVertical, User, Clock, Edit3, Trash2, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePosts } from '../hooks/usePosts';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,37 +50,9 @@ const SocialFeed = () => {
     setShowActionsFor(null);
   };
 
-  const handleSharePost = async (post) => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `Post de ${post.author}`,
-          text: post.content.substring(0, 100) + '...',
-          url: window.location.href
-        });
-      } else {
-        // Fallback: copiar para clipboard
-        await navigator.clipboard.writeText(
-          `${post.content.substring(0, 100)}...\n\nCompartilhado do Sereno`
-        );
-        alert('Link copiado para a área de transferência!');
-      }
-    } catch (error) {
-      console.error('Erro ao compartilhar:', error);
-    }
-  };
+  const handleSharePost = async () => {};
 
-  const toggleComments = (postId) => {
-    setExpandedComments(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-      } else {
-        newSet.add(postId);
-      }
-      return newSet;
-    });
-  };
+  const toggleComments = () => {};
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Agora mesmo';
@@ -233,12 +205,10 @@ const SocialFeed = () => {
             )}
           </div>
 
-          {/* Post Stats */}
+          {/* Post Stats (simplificado) */}
           <div className="flex items-center justify-between text-sm text-white/60 mb-4">
             <div className="flex items-center space-x-4">
               <span>{post.likes?.length || 0} curtidas</span>
-              <span>{post.commentCount || 0} comentários</span>
-              <span>{post.shares || 0} compartilhamentos</span>
             </div>
           </div>
 
@@ -264,35 +234,11 @@ const SocialFeed = () => {
                 )}
               </button>
 
-              {/* Comment Button */}
-              <button
-                onClick={() => toggleComments(post.id)}
-                className="flex items-center space-x-2 px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span className="font-medium">Comentar</span>
-                {post.commentCount > 0 && (
-                  <span className="text-sm">({post.commentCount})</span>
-                )}
-              </button>
-
-              {/* Share Button */}
-              <button
-                onClick={() => handleSharePost(post)}
-                className="flex items-center space-x-2 px-4 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-              >
-                <Share2 className="w-5 h-5" />
-                <span className="font-medium">Compartilhar</span>
-              </button>
+              {/* Comentários e compartilhamento removidos */}
             </div>
           </div>
 
-          {/* Comments Section */}
-          {expandedComments.has(post.id) && (
-            <div className="mt-6 pt-4 border-t border-white/10">
-              <CommentsThread postId={post.id} />
-            </div>
-          )}
+          {/* Seção de comentários removida */}
         </article>
       ))}
 

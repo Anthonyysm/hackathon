@@ -43,9 +43,14 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
   }, [user?.role]);
 
   const handleNavClick = useCallback((tabName) => {
+    if (tabName === 'chat') {
+      navigate('/live-chat');
+      closeAllMenus();
+      return;
+    }
     setActiveTab(tabName);
     closeAllMenus();
-  }, [setActiveTab, closeAllMenus]);
+  }, [setActiveTab, closeAllMenus, navigate]);
 
   const handleLogout = useCallback(async () => {
     try {

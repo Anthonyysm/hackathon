@@ -1,21 +1,49 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { TrendingUp, Calendar } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { moodService } from '../services/firebaseService';
 
 const MoodTracker = ({ onOpenHumorTab }) => {
-  const weeklyData = [
-    { day: 'Seg', mood: 6, energy: 7 },
-    { day: 'Ter', mood: 4, energy: 5 },
-    { day: 'Qua', mood: 7, energy: 8 },
-    { day: 'Qui', mood: 5, energy: 6 },
-    { day: 'Sex', mood: 8, energy: 9 },
-    { day: 'Sáb', mood: 7, energy: 7 },
-    { day: 'Dom', mood: 6, energy: 6 }
-  ];
+  const { user } = useAuth();
+  const [weeklyData, setWeeklyData] = useState([
+    { day: 'Seg', mood: 0, energy: 0 },
+    { day: 'Ter', mood: 0, energy: 0 },
+    { day: 'Qua', mood: 0, energy: 0 },
+    { day: 'Qui', mood: 0, energy: 0 },
+    { day: 'Sex', mood: 0, energy: 0 },
+    { day: 'Sáb', mood: 0, energy: 0 },
+    { day: 'Dom', mood: 0, energy: 0 }
+  ]);
+  const [intensity, setIntensity] = useState(5);
+  const [energy, setEnergy] = useState(5);
+  const [stability, setStability] = useState(5);
 
   const maxValue = 10;
 
   const trendsRef = useRef(null);
   const [highlightTrends, setHighlightTrends] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return;
+      const history = await moodService.getUserMoodHistory(user.uid, 7);
+      const days = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      const now = new Date();
+      const mapped = [0,0,0,0,0,0,0].map((_, idx) => {
+        const d = (idx + 1) % 7; // Seg a Dom
+        const label = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'][idx];
+        const moods = history.filter(h => {
+          const dt = h.recordedAt?.toDate ? h.recordedAt.toDate() : new Date(h.recordedAt);
+          return dt && dt.getDay() === (idx+1)%7;
+        });
+        const avgMood = moods.length ? Math.round(moods.reduce((s, m) => s + (m.intensity||0), 0) / moods.length) : 0;
+        const avgEnergy = moods.length ? Math.round(moods.reduce((s, m) => s + (m.energy||0), 0) / moods.length) : 0;
+        return { day: label, mood: avgMood, energy: avgEnergy };
+      });
+      setWeeklyData(mapped);
+    };
+    load();
+  }, [user]);
 
   const handleSaveCheckin = async () => {
     if (!user) {
@@ -24,19 +52,15 @@ const MoodTracker = ({ onOpenHumorTab }) => {
     }
 
     try {
-      // TODO: Implement mood recording to Firebase
       const moodData = {
-        intensity: 7, // Valor padrão, pode ser ajustado
-        energy: 6,
-        stability: 5,
+        intensity,
+        energy,
+        stability,
         notes: 'Check-in diário',
         tags: ['daily', 'checkin']
       };
 
-      // Aqui seria feita a chamada para o Firebase
-      // await moodService.recordMood(user.uid, moodData);
-      
-      console.log('Mood registrado:', moodData);
+      await moodService.recordMood(user.uid, moodData);
       alert('Check-in salvo com sucesso!');
       
       // Se a função onOpenHumorTab foi fornecida, abre a aba de humor
@@ -50,6 +74,18 @@ const MoodTracker = ({ onOpenHumorTab }) => {
           setTimeout(() => setHighlightTrends(false), 1600);
         }
       }
+      // refresh history after save
+      const history = await moodService.getUserMoodHistory(user.uid, 7);
+      const mapped = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((label, idx) => {
+        const moods = history.filter(h => {
+          const dt = h.recordedAt?.toDate ? h.recordedAt.toDate() : new Date(h.recordedAt);
+          return dt && dt.getDay() === (idx+1)%7;
+        });
+        const avgMood = moods.length ? Math.round(moods.reduce((s, m) => s + (m.intensity||0), 0) / moods.length) : 0;
+        const avgEnergy = moods.length ? Math.round(moods.reduce((s, m) => s + (m.energy||0), 0) / moods.length) : 0;
+        return { day: label, mood: avgMood, energy: avgEnergy };
+      });
+      setWeeklyData(mapped);
     } catch (error) {
       console.error('Erro ao salvar check-in:', error);
       alert('Erro ao salvar check-in. Tente novamente.');
@@ -67,28 +103,27 @@ const MoodTracker = ({ onOpenHumorTab }) => {
         
         <div className="space-y-6">
           {/* Mood Metrics */}
-          {[
-            { label: 'Vontade', value: 7, color: 'white' },
-            { label: 'Estabilidade', value: 6, color: 'gray' },
-            { label: 'Atenção', value: 8, color: 'white' }
-          ].map((metric, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-300">{metric.label}</span>
-                <span className="text-sm text-gray-400">{metric.value}/10</span>
-              </div>
-              <div className="w-full bg-gray-700/50 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full bg-gradient-to-r transition-all duration-500 ${
-                    metric.color === 'white' ? 'from-white to-gray-200' :
-                    metric.color === 'gray' ? 'from-gray-400 to-gray-500' :
-                    'from-white to-gray-200'
-                  }`}
-                  style={{ width: `${(metric.value / 10) * 100}%` }}
-                ></div>
-              </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-300">Intensidade</span>
+              <span className="text-sm text-gray-400">{intensity}/10</span>
             </div>
-          ))}
+            <input type="range" min="0" max="10" value={intensity} onChange={(e)=>setIntensity(parseInt(e.target.value))} className="w-full" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-300">Energia</span>
+              <span className="text-sm text-gray-400">{energy}/10</span>
+            </div>
+            <input type="range" min="0" max="10" value={energy} onChange={(e)=>setEnergy(parseInt(e.target.value))} className="w-full" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-300">Estabilidade</span>
+              <span className="text-sm text-gray-400">{stability}/10</span>
+            </div>
+            <input type="range" min="0" max="10" value={stability} onChange={(e)=>setStability(parseInt(e.target.value))} className="w-full" />
+          </div>
           
           <button onClick={handleSaveCheckin} className="w-full bg-gradient-to-r from-white to-gray-200 text-black text-sm font-medium py-3 px-4 rounded-xl hover:from-gray-200 hover:to-gray-300 transform hover:scale-105 transition-all duration-200">
             Salvar Check-in

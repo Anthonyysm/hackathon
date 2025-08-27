@@ -196,12 +196,12 @@ const ExploreCommunities = () => {
     setFilteredCommunities(filtered);
   }, [communities, selectedCategory, searchTerm, sortBy]);
 
-  const joinCommunity = (communityId) => {
-    setUserCommunities(prev => [...prev, communityId]);
+  const joinCommunity = () => {
+    console.warn('Entrada em comunidades desativada neste build.');
   };
 
-  const leaveCommunity = (communityId) => {
-    setUserCommunities(prev => prev.filter(id => id !== communityId));
+  const leaveCommunity = () => {
+    console.warn('Saída de comunidades desativada neste build.');
   };
 
   const formatTimeAgo = (date) => {

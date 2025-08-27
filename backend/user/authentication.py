@@ -2,12 +2,12 @@ import firebase_admin
 from firebase_admin import credentials, auth
 from rest_framework import authentication, exceptions
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 # Inicialize o Firebase apenas uma vez
 if not firebase_admin._apps:
-    cred = credentials.Certificate(
-        'hackathon/backend/serviceAccountKey.json'
-    )  # Caminho para seu arquivo JSON
+    cred_path = settings.BASE_DIR / 'serviceAccountKey.json'
+    cred = credentials.Certificate(str(cred_path))
     firebase_admin.initialize_app(cred)
 
 User = get_user_model()

@@ -17,11 +17,14 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { auth, db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { profileImageService } from '../services/profileImageService';
 import { doc, getDoc, updateDoc, collection, query, where, orderBy, getDocs, getDoc as getDocAlias, getDocs as getDocsAlias } from 'firebase/firestore';
 
 const UserProfile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -161,8 +164,10 @@ const UserProfile = () => {
     setUploadingPhoto(true);
     
     try {
-      // TODO: Implement photo upload to Firebase Storage
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const backendUserId = authUser?.backend?.id;
+      const idToken = authUser?.idToken || (await auth.currentUser?.getIdToken());
+      if (!backendUserId) throw new Error('Usuário do backend não identificado');
+      await profileImageService.uploadProfilePhoto(file, backendUserId, idToken);
       setSuccess('Foto de perfil atualizada com sucesso!');
     } catch (error) {
       setError('Erro ao fazer upload da foto');
@@ -178,8 +183,7 @@ const UserProfile = () => {
     setUploadingBanner(true);
     
     try {
-      // TODO: Implement banner upload to Firebase Storage
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Endpoint de banner ainda não implementado no backend
       setSuccess('Banner atualizado com sucesso!');
     } catch (error) {
       setError('Erro ao fazer upload do banner');

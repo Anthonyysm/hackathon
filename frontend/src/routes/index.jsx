@@ -212,6 +212,13 @@ export const routes = [
     category: 'communication'
   },
   {
+    path: '/chat/:roomCode',
+    element: <CompleteProfileRoute><LiveChat /></CompleteProfileRoute>,
+    protected: true,
+    title: 'Sereno - Chat',
+    category: 'communication'
+  },
+  {
     path: '/post/:postId',
     element: <CompleteProfileRoute><PostDetail /></CompleteProfileRoute>,
     protected: true,

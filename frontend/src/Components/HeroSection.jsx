@@ -20,14 +20,7 @@ const HeroSection = React.memo(({ scrollToSection }) => {
     scrollToSection('services');
   }, [scrollToSection]);
 
-  const handleLoginClick = useCallback(() => {
-    // Navegar para login com fallback para hash
-    try {
-      window.location.hash = '#/login';
-    } catch (error) {
-      console.warn('Fallback para navegação por hash');
-    }
-  }, []);
+  // Login CTA removido
 
   // Dados memoizados para evitar recriações
   const features = useMemo(() => [
@@ -103,26 +96,13 @@ const HeroSection = React.memo(({ scrollToSection }) => {
             ))}
           </div>
 
-          {/* CTA Buttons Minimalistas com Melhor Acessibilidade */}
-          <div className={`flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center transition-all duration-1000 delay-1200 ${
+          {/* CTA - Somente Explorar Recursos */}
+          <div className={`flex justify-center items-center transition-all duration-1000 delay-1200 ${
             isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            {/* Primary Button */}
-            <button 
-              onClick={handleLoginClick}
-              className="group relative bg-white text-black px-6 py-3 md:px-8 md:py-4 rounded-xl transition-all duration-300 text-sm md:text-base font-light tracking-wide hover:bg-white/90 w-full sm:w-auto border border-white/20 backdrop-blur-md focus-ring hover:scale-105"
-              aria-label="Fazer login na plataforma Sereno"
-            >
-              <span className="relative z-10 flex items-center justify-center space-x-2 md:space-x-3">
-                <span>Entrar</span>
-                <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 transition-all duration-300 group-hover:translate-x-1" aria-hidden="true" />
-              </span>
-            </button>
-
-            {/* Secondary Button */}
             <button 
               onClick={handleExploreClick}
-              className="group relative bg-transparent border border-white/30 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl transition-all duration-300 text-sm md:text-base font-light tracking-wide hover:bg-white/5 w-full sm:w-auto backdrop-blur-md focus-ring hover:scale-105"
+              className="group relative bg-transparent border border-white/30 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl transition-all duration-300 text-sm md:text-base font-light tracking-wide hover:bg-white/5 backdrop-blur-md focus-ring hover:scale-105"
               aria-label="Explorar recursos e funcionalidades da plataforma"
             >
               <span className="relative z-10 flex items-center justify-center space-x-2 md:space-x-3">

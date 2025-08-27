@@ -100,35 +100,13 @@ const CommunityGroups = () => {
     setUserGroups(mockUserGroups);
   }, []);
 
-  const handleJoinGroup = useCallback(async (groupId) => {
-    try {
-      // Implementar lógica de entrada no grupo
-      setGroups(prev => prev.map(group => 
-        group.id === groupId 
-          ? { ...group, isMember: true, memberCount: group.memberCount + 1 }
-          : group
-      ));
-      setUserGroups(prev => [...prev, groupId]);
-      setConfettiTrigger(prev => prev + 1);
-      console.log('Entrou no grupo:', groupId);
-    } catch (error) {
-      console.error('Erro ao entrar no grupo:', error);
-    }
+  const handleJoinGroup = useCallback(async () => {
+    // Lógica de entrada em grupos será movida para o backend; desativada aqui
+    console.warn('Entrada em grupos desativada neste build.');
   }, []);
 
-  const handleLeaveGroup = useCallback(async (groupId) => {
-    try {
-      // Implementar lógica de saída do grupo
-      setGroups(prev => prev.map(group => 
-        group.id === groupId 
-          ? { ...group, isMember: false, memberCount: group.memberCount - 1 }
-          : group
-      ));
-      setUserGroups(prev => prev.filter(id => id !== groupId));
-      console.log('Saiu do grupo:', groupId);
-    } catch (error) {
-      console.error('Erro ao sair do grupo:', error);
-    }
+  const handleLeaveGroup = useCallback(async () => {
+    console.warn('Saída de grupos desativada neste build.');
   }, []);
 
   const handleCreateGroup = useCallback(async (e) => {

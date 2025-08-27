@@ -18,36 +18,49 @@ export const AuthProvider = ({ children }) => {
       
       try {
         if (currentUser) {
+          // Obter token Firebase e autenticar no backend
+          const idToken = await currentUser.getIdToken();
+          const apiBase = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : 'http://localhost:8000';
+
+          let backendUser = null;
+          try {
+            const resp = await fetch(`${apiBase}/api/login/`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              backendUser = data.user;
+            }
+          } catch (e) {
+            // fallback silencioso
+          }
+
+          // Carregar dados do Firestore (mantemos como perfil complementar do app)
           const userRef = doc(db, 'users', currentUser.uid);
           const userSnap = await getDoc(userRef);
-          
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-            
-            // Verificar se o usuário precisa completar o perfil
-            const hasCompleteProfile = userData.username && userData.phone && userData.birthDate;
-            
-            if (!hasCompleteProfile) {
-              setNeedsProfileCompletion(true);
-            }
-            
-            setUser({ 
-              ...currentUser, 
-              role: userData.role,
-              displayName: userData.displayName || currentUser.displayName,
-              profileData: userData
-            });
-            
-            // Verificar se é a primeira vez
-            const hasSeenTour = localStorage.getItem(`tour-${currentUser.uid}`);
-            if (!hasSeenTour) {
-              setIsFirstTime(true);
-            }
-          } else {
-            // Usuário novo, precisa completar o perfil
+
+          const userData = userSnap.exists() ? userSnap.data() : {};
+
+          const hasCompleteProfile = userData.username && userData.phone && userData.birthDate;
+          if (!hasCompleteProfile) {
             setNeedsProfileCompletion(true);
-            setUser(currentUser);
-            // Usuário novo, é a primeira vez
+          }
+
+          setUser({
+            ...currentUser,
+            role: userData.role || backendUser?.type,
+            displayName: userData.displayName || currentUser.displayName,
+            profileData: userData,
+            backend: backendUser,
+            idToken
+          });
+
+          const hasSeenTour = localStorage.getItem(`tour-${currentUser.uid}`);
+          if (!hasSeenTour) {
             setIsFirstTime(true);
           }
         } else {

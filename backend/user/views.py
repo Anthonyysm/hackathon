@@ -1,13 +1,18 @@
 from firebase_admin import auth as firebase_auth
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
 from datetime import date
 from .models import CustomUser
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def create_user_view(request):
     data = request.data
     name = data.get('name')
@@ -76,6 +81,7 @@ def create_user_view(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login_view(request):
     # Espera o token no header Authorization: Bearer <token>
     auth_header = request.headers.get('Authorization', '')
@@ -120,7 +126,29 @@ def login_view(request):
         )
 
 
+@api_view(['GET'])
+def get_user_view(request, user_id):
+    try:
+        user = CustomUser.objects.get(id=user_id)
+        return Response(
+            {
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'username': user.username,
+                'type': user.type,
+                'phone': user.phone,
+                'birth': user.birth.isoformat() if user.birth else None,
+                'photo': request.build_absolute_uri(user.photo.url) if user.photo else None,
+            },
+            status=status.HTTP_200_OK,
+        )
+    except CustomUser.DoesNotExist:
+        return Response({'error': 'Usuário não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+
 @api_view(['PUT'])
+@parser_classes([MultiPartParser, FormParser])
 def update_user_view(request, user_id):
     try:
         user = CustomUser.objects.get(id=user_id)
@@ -196,6 +224,11 @@ def update_user_view(request, user_id):
         password = data.get('password')
         if password:
             user.set_password(password)
+
+        # Upload de foto se enviada como multipart "photo"
+        if 'photo' in request.FILES:
+            uploaded_file = request.FILES['photo']
+            user.photo.save(uploaded_file.name, uploaded_file, save=False)
 
         user.save()
 

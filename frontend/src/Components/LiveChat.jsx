@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, User, Send, Paperclip, Search, Filter, MoreVertical, Clock, Check, CheckCheck, ArrowLeft, Users, Hash, Plus, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MessageCircle, User, Send, Paperclip, Search, Filter, Clock, Check, CheckCheck, ArrowLeft, Users, Plus, X } from 'lucide-react';
 import Card from './ui/Card';
 import Input from './ui/Input';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const LiveChat = () => {
+  const [isOpen, setIsOpen] = useState(true);
+  const [partnerId, setPartnerId] = useState('');
+  const wsRef = useRef(null);
+  const [wsMessages, setWsMessages] = useState([]);
+  const { user } = useAuth();
+  const [roomFromPath, setRoomFromPath] = useState(null);
+  const [roomCode, setRoomCode] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [selectedChat, setSelectedChat] = useState(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,6 +35,73 @@ const LiveChat = () => {
   const groups = [];
   const conversations = [];
 
+  // Build stable room name from two IDs
+  const getRoomName = useCallback(() => {
+    if (roomFromPath) return roomFromPath; // usa /chat/<sala>
+    const me = user?.uid;
+    if (!me || !partnerId) return null;
+    const [a, b] = [me, partnerId].sort();
+    return `${a}_${b}`;
+  }, [roomFromPath, user?.uid, partnerId]);
+
+  // Detecta /chat/<sala> na URL e usa como room
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const match = window.location.pathname.match(/\/chat\/([A-Za-z0-9_\-]+)\/?$/);
+    if (match && match[1]) {
+      setRoomFromPath(match[1]);
+      setWsMessages([]);
+    } else {
+      setRoomFromPath(null);
+    }
+  }, [location.pathname]);
+
+  // Connect websocket whenever room changes and panel is open
+  useEffect(() => {
+    const room = getRoomName();
+    if (!room) return;
+    const wsBase = typeof window !== 'undefined' ? window.location.origin.replace(/^http/, 'ws') : 'ws://localhost:8000';
+    const url = `${wsBase}/ws/chat/${room}/`;
+
+    const socket = new WebSocket(url);
+    wsRef.current = socket;
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.message) {
+          setWsMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              message: data.message,
+              isOwn: false,
+              time: new Date().toLocaleTimeString(),
+            },
+          ]);
+        }
+      } catch (_) {}
+    };
+    socket.onclose = () => {
+      wsRef.current = null;
+    };
+
+    return () => {
+      try {
+        socket.close();
+      } catch (_) {}
+    };
+  }, [getRoomName, isOpen]);
+
+  // Close panel with ESC
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const getMessageStatus = (status) => {
     switch (status) {
       case 'sent':
@@ -36,6 +114,80 @@ const LiveChat = () => {
         return null;
     }
   };
+
+  // If a room code exists in URL, render the dedicated chat screen
+  if (roomFromPath) {
+    return (
+      <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
+        <Card variant="glass" className="overflow-hidden max-w-3xl mx-auto">
+          {/* Chat Header */}
+          <div className="bg-white/5 p-4 border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">Sala: {roomFromPath}</h3>
+                </div>
+              </div>
+              <button onClick={() => navigate('/live-chat')} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg" aria-label="Sair do chat">Sair</button>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            {wsMessages.length > 0 ? (
+              wsMessages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-xs px-4 py-2 rounded-2xl ${msg.isOwn ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
+                    <p className="text-sm">{msg.message}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className={`text-xs ${msg.isOwn ? 'text-gray-700' : 'text-white/50'}`}>{msg.time}</span>
+                      {msg.isOwn && getMessageStatus(msg.status)}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <MessageCircle className="w-12 h-12 text-white/30 mx-auto mb-3" />
+                <p className="text-white/50">Nenhuma mensagem ainda</p>
+                <p className="text-sm text-white/30">Envie a primeira mensagem</p>
+              </div>
+            )}
+          </div>
+
+          {/* Message Input */}
+          <div className="p-4 border-t border-white/10">
+            <div className="flex items-center space-x-2">
+              <button className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors focus-ring">
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <Input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={"Digite sua mensagem..."}
+                variant="glass"
+                size="sm"
+                className="flex-1"
+              />
+              <button 
+                onClick={handleSendMessage}
+                disabled={!message.trim()}
+                className="p-2 bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-ring"
+                aria-label="Enviar mensagem"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const filteredConversations = conversations.filter(conv => {
     const matchesSearch = conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,11 +209,13 @@ const LiveChat = () => {
   const selectedPsychologist = psychologists.find(psych => psych.id === selectedChat);
 
   const handleSendMessage = () => {
-    if (!message.trim() || (!selectedConversation && !selectedPsychologist && !selectedGroup)) return;
-    
-    // TODO: Implement message sending to Firebase
-    console.log('Enviando mensagem:', message);
-    setMessage('');
+    if (!message.trim()) return;
+    const socket = wsRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ message }));
+      setWsMessages(prev => [...prev, { id: Date.now(), message, isOwn: true, time: new Date().toLocaleTimeString(), status: 'sent' }]);
+      setMessage('');
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -73,6 +227,7 @@ const LiveChat = () => {
 
   const handlePsychologistChat = (psychologistId) => {
     setSelectedChat(psychologistId);
+    setPartnerId(psychologistId);
   };
 
   const handleGroupChat = (group) => {
@@ -101,8 +256,7 @@ const LiveChat = () => {
       return;
     }
 
-    // TODO: Implement group creation to Firebase
-    console.log('Novo grupo a ser criado:', newGroupData);
+    console.warn('Criação de grupos desativada neste build.');
     handleCloseCreateGroupModal();
   };
 
@@ -131,12 +285,43 @@ const LiveChat = () => {
 
   return (
     <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
+      <div className="flex justify-end max-w-7xl mx-auto px-4">
+        <button onClick={() => setIsOpen(v => !v)} className="p-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white">
+          {isOpen ? 'Fechar' : 'Abrir'} Conversas
+        </button>
+      </div>
       {/* Chat Options */}
+      {isOpen && (
       <Card variant="glass" padding="lg">
         <Card.Header>
           <div className="flex items-center space-x-2 mb-6">
             <MessageCircle className="w-6 h-6 text-gray-400" />
             <h2 className="text-xl font-semibold text-white">Conversas em Tempo Real</h2>
+            <button onClick={() => setIsOpen(false)} className="ml-auto p-1 hover:bg-white/10 rounded-lg transition-colors" aria-label="Fechar conversas">
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+          {/* Entrar em sala via código -> redireciona para /chat/<codigo> */}
+          <div className="flex items-center space-x-2 mb-4">
+            <Input
+              type="text"
+              placeholder="Digite o código da sala (ex: sala1208)"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value)}
+              variant="glass"
+              size="sm"
+              className="flex-1"
+            />
+            <button
+              onClick={() => {
+                if (!roomCode.trim()) return;
+                navigate(`/chat/${roomCode.trim()}`);
+              }}
+              disabled={!roomCode.trim()}
+              className="px-3 py-2 bg-white text-black rounded-lg disabled:opacity-50"
+            >
+              Entrar
+            </button>
           </div>
 
           <div className="flex items-center justify-between mb-4">
@@ -350,9 +535,10 @@ const LiveChat = () => {
           )}
         </Card.Content>
       </Card>
+      )}
 
       {/* Chat Interface */}
-      {currentChat && (
+      {isOpen && partnerId && (
         <Card variant="glass" className="overflow-hidden">
           {/* Chat Header */}
           <div className="bg-white/5 p-4 border-b border-white/10">
@@ -362,6 +548,7 @@ const LiveChat = () => {
                   onClick={() => {
                     setSelectedChat(null);
                     setSelectedGroup(null);
+                    setPartnerId('');
                   }}
                   className="p-1 hover:bg-white/10 rounded-lg transition-colors focus-ring"
                   aria-label="Voltar para lista"
@@ -369,54 +556,29 @@ const LiveChat = () => {
                   <ArrowLeft className="w-5 h-5 text-white" />
                 </button>
                 <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                  {currentChat.avatar ? (
-                    <img src={currentChat.avatar} alt="" className="w-full h-full rounded-full" />
-                  ) : (
-                    <User className="w-5 h-5 text-white" />
-                  )}
+                  <User className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white">{currentChat.name}</h3>
-                  <p className="text-sm text-white/70">
-                    {selectedGroup ? (
-                      `${currentChat.memberCount} membros • ${currentChat.onlineCount} online`
-                    ) : (
-                      currentChat.status === 'online' ? 'Online' : 'Offline'
-                    )}
-                    {currentChat.type === 'psychologist' && ' • Profissional'}
-                    {selectedPsychologist && ' • Psicólogo'}
-                  </p>
+                  <h3 className="font-medium text-white">Conversa</h3>
+                  <p className="text-sm text白/70">Direta: {partnerId}</p>
                 </div>
+                <button onClick={() => setIsOpen(false)} className="ml-auto p-1 hover:bg-white/10 rounded-lg transition-colors" aria-label="Fechar chat">
+                  <X className="w-5 h-5 text-white" />
+                </button>
               </div>
             </div>
           </div>
 
           {/* Messages */}
           <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
-            {currentChat.messages && currentChat.messages.length > 0 ? (
-              currentChat.messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs px-4 py-2 rounded-2xl ${
-                      msg.isOwn
-                        ? 'bg-white text-black'
-                        : 'bg-white/10 text-white'
-                    }`}
-                  >
-                    {!msg.isOwn && selectedGroup && (
-                      <div className="text-xs text-white/70 mb-1 font-medium">
-                        {msg.sender}
-                      </div>
-                    )}
+            {wsMessages.length > 0 ? (
+              wsMessages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-xs px-4 py-2 rounded-2xl ${msg.isOwn ? 'bg-white text-black' : 'bg-white/10 text-white'}`}>
                     <p className="text-sm">{msg.message}</p>
                     <div className="flex items-center justify-between mt-1">
-                      <span className={`text-xs ${msg.isOwn ? 'text-gray-700' : 'text-white/50'}`}>
-                        {msg.time}
-                      </span>
-                      {msg.isOwn && !selectedGroup && getMessageStatus(msg.status)}
+                      <span className={`text-xs ${msg.isOwn ? 'text-gray-700' : 'text-white/50'}`}>{msg.time}</span>
+                      {msg.isOwn && getMessageStatus(msg.status)}
                     </div>
                   </div>
                 </div>
@@ -442,9 +604,7 @@ const LiveChat = () => {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={
-                  selectedGroup 
-                    ? "Digite sua mensagem para o grupo..." 
-                    : "Digite sua mensagem..."
+                  "Digite sua mensagem..."
                 }
                 variant="glass"
                 size="sm"

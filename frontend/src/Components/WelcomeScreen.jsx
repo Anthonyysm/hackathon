@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Sun, Moon, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useGreeting } from '../hooks/useGreeting';
@@ -45,20 +45,36 @@ const WelcomeScreen = React.memo(({ showWelcomeMessage = false }) => {
     }
   }, [showWelcomeMessage, showGreeting]);
 
-  const motivationalMessages = useMemo(() => [
-    {
-      message: "Toda pessoa deveria ser aplaudida de pé pelo menos uma vez na vida, porque todos nós vencemos o mundo.",
-      author: "Augusto Cury"
-    },
-    {
-      message: "A vida é 10% do que acontece com você e 90% de como você reage a isso.",
-      author: "Charles Swindoll"
-    },
-    {
-      message: "Você é mais corajoso do que acredita, mais forte do que parece e mais inteligente do que pensa.",
-      author: "A.A. Milne"
+  const [motivationalPhrase, setMotivationalPhrase] = useState(null);
+  const [loadingPhrase, setLoadingPhrase] = useState(false);
+
+  const apiBase = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.protocol}//${window.location.hostname}:8000`;
     }
-  ], []);
+    return 'http://localhost:8000';
+  }, []);
+
+  const fetchPhrase = useCallback(async () => {
+    setLoadingPhrase(true);
+    try {
+      const resp = await fetch(`${apiBase}/api/phrase/`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setMotivationalPhrase(data);
+      } else {
+        setMotivationalPhrase(null);
+      }
+    } catch (_) {
+      setMotivationalPhrase(null);
+    } finally {
+      setLoadingPhrase(false);
+    }
+  }, [apiBase]);
+
+  useEffect(() => {
+    fetchPhrase();
+  }, [fetchPhrase]);
 
   const psychologists = useMemo(() => [
     {
@@ -75,32 +91,16 @@ const WelcomeScreen = React.memo(({ showWelcomeMessage = false }) => {
     }
   ], []);
 
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % motivationalMessages.length);
-  }, [motivationalMessages.length]);
-
-  const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + motivationalMessages.length) % motivationalMessages.length);
-  }, [motivationalMessages.length]);
-
-  const handleSlideSelect = useCallback((index) => {
-    setCurrentSlide(index);
-  }, []);
+  const refreshPhrase = useCallback(() => {
+    fetchPhrase();
+  }, [fetchPhrase]);
 
   const handlePsychologistClick = useCallback((name) => {
     const slug = encodeURIComponent(name).toLowerCase().replace(/%20/g, '-');
     navigate(`/user/${slug}`);
   }, [navigate]);
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      prevSlide();
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      nextSlide();
-    }
-  }, [prevSlide, nextSlide]);
+  const handleKeyDown = useCallback(() => {}, []);
 
   return (
     <Card variant="glass" padding="lg" className="mb-8 animation-initial animate-fade-in-up">
@@ -122,62 +122,42 @@ const WelcomeScreen = React.memo(({ showWelcomeMessage = false }) => {
       )}
 
       <Card.Content>
-        {/* Motivational Carousel */}
+        {/* Motivational from Backend */}
         <Card variant="glass" padding="lg" className="mb-6 animation-initial animate-fade-in-up animation-delay-200">
           <div 
             onKeyDown={handleKeyDown}
             tabIndex={0}
             role="region"
-            aria-label="Mensagens motivacionais"
+            aria-label="Mensagem motivacional"
             aria-live="polite"
           >
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">SM</span>
-              </div>
-            </div>
+            {/* removed decorative circle above the phrase to keep UI clean */}
             
             {/* Motivational Card */}
             <div className="text-center min-h-[100px] flex flex-col justify-center">
-              <blockquote className="text-white text-lg leading-relaxed mb-3">
-                "{motivationalMessages[currentSlide].message}"
-              </blockquote>
-              <cite className="text-gray-300 text-sm font-medium not-italic">
-                - {motivationalMessages[currentSlide].author}
-              </cite>
+              {loadingPhrase ? (
+                <div className="text-white/70">Carregando frase...</div>
+              ) : motivationalPhrase ? (
+                <>
+                  <blockquote className="text-white text-lg leading-relaxed mb-3">
+                    "{motivationalPhrase.frase}"
+                  </blockquote>
+                  <cite className="text-gray-300 text-sm font-medium not-italic">
+                    - {motivationalPhrase.autor}
+                  </cite>
+                </>
+              ) : (
+                <div className="text-white/70">Não foi possível carregar a frase agora.</div>
+              )}
             </div>
 
-            {/* Navigation */}
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center justify-center mt-6">
               <button
-                onClick={prevSlide}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 focus-ring"
-                aria-label="Mensagem anterior"
+                onClick={refreshPhrase}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors focus-ring"
+                aria-label="Atualizar frase"
               >
-                <ChevronLeft className="w-5 h-5" aria-hidden="true" />
-              </button>
-              
-              <div className="flex space-x-2" role="tablist" aria-label="Navegação de mensagens">
-                {motivationalMessages.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSlideSelect(index)}
-                    className={`w-2 h-2 rounded-full transition-all duration-200 focus-ring ${
-                      index === currentSlide ? 'bg-white' : 'bg-gray-600'
-                    }`}
-                    aria-label={`Ir para mensagem ${index + 1}`}
-                    aria-selected={index === currentSlide}
-                    role="tab"
-                  />
-                ))}
-              </div>
-              
-              <button
-                onClick={nextSlide}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 focus-ring"
-                aria-label="Próxima mensagem"
-              >
-                <ChevronRight className="w-5 h-5" aria-hidden="true" />
+                Nova frase
               </button>
             </div>
 
