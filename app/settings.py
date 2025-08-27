@@ -90,8 +90,8 @@ DATABASES = {
     }
 }
 
-with open(BASE_DIR / "serviceAccountKey.json") as f:
-    secrets = json.load(f)
+with open(BASE_DIR / "serviceAccountKey.json") as os.environ["FIREBASE_CREDENTIALS"]:
+    secrets = json.load(os.environ["FIREBASE_CREDENTIALS"])
 
 DATABASES = {
     'default': {
