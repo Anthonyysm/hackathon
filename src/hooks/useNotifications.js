@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { auth, db } from '../firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -24,10 +24,14 @@ export const useNotifications = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loaded = snapshot.docs.map((d) => ({
         id: d.id,
-        ...d.data()
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate() || new Date()
       }));
       setNotifications(loaded);
       setUnreadCount(loaded.filter(n => !n.read).length);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching notifications:', error);
       setLoading(false);
     });
 
@@ -92,6 +96,39 @@ export const useNotifications = () => {
     });
   }, [createNotification]);
 
+  // Mark notification as read
+  const markAsRead = useCallback(async (notificationId) => {
+    try {
+      const { updateDoc, doc } = await import('firebase/firestore');
+      const notificationRef = doc(db, 'notifications', notificationId);
+      await updateDoc(notificationRef, { read: true });
+      return true;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+  }, []);
+
+  // Mark all notifications as read
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const { updateDoc, doc, writeBatch } = await import('firebase/firestore');
+      const batch = writeBatch(db);
+      
+      const unreadNotifications = notifications.filter(n => !n.read);
+      unreadNotifications.forEach(notification => {
+        const notificationRef = doc(db, 'notifications', notification.id);
+        batch.update(notificationRef, { read: true });
+      });
+      
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return false;
+    }
+  }, [notifications]);
+
   return {
     notifications,
     unreadCount,
@@ -99,6 +136,8 @@ export const useNotifications = () => {
     createNotification,
     createLikeNotification,
     createCommentNotification,
-    createFollowNotification
+    createFollowNotification,
+    markAsRead,
+    markAllAsRead
   };
 };

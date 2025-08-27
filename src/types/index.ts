@@ -10,14 +10,26 @@ export interface User {
 }
 
 export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  username: string;
+  photoURL?: string;
   bio?: string;
-  avatar?: string;
-  birthDate?: Date;
-  gender?: 'masculino' | 'feminino' | 'outro' | 'prefiro-nao-dizer';
   location?: string;
-  interests?: string[];
-  isAnonymous?: boolean;
-  moodHistory?: MoodEntry[];
+  website?: string;
+  role: 'cliente' | 'psicologo' | 'admin';
+  isVerified: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+  lastSeen?: Date;
+  postCount: number;
+  likedPosts: string[];
+  followers: string[];
+  following: string[];
+  blockedUsers: string[];
+  privacySettings: PrivacySettings;
+  notificationSettings: NotificationSettings;
   therapySessions?: TherapySession[];
 }
 
@@ -28,7 +40,7 @@ export interface Post {
   isAnonymous: boolean;
   avatar?: string;
   content: string;
-  mood: Mood;
+  mood?: Mood;
   image?: string;
   tags: string[];
   likes: number;
@@ -38,22 +50,26 @@ export interface Post {
   updatedAt?: Date;
   isEdited?: boolean;
   communityId?: string;
+  likedBy: string[]; // Array de user IDs que curtiram
+  reportedBy?: string[]; // Array de user IDs que reportaram
+  isReported?: boolean;
+  isHidden?: boolean;
 }
 
 export interface Mood {
   emoji: string;
   label: string;
-  value: number; // 1-10 scale
-  timestamp: Date;
+  value: number;
+  timestamp?: Date;
 }
 
 export interface MoodEntry {
   id: string;
+  userId: string;
   mood: Mood;
+  cause?: string;
   notes?: string;
-  activities?: string[];
-  sleepHours?: number;
-  stressLevel?: number;
+  intensity: number; // 1-10
   createdAt: Date;
 }
 
@@ -66,22 +82,30 @@ export interface Comment {
   content: string;
   likes: number;
   createdAt: Date;
+  updatedAt?: Date;
   isEdited?: boolean;
   parentCommentId?: string; // Para comentários aninhados
+  likedBy: string[]; // Array de user IDs que curtiram
+  reportedBy?: string[]; // Array de user IDs que reportaram
+  isReported?: boolean;
+  isHidden?: boolean;
 }
 
 export interface CommunityGroup {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  color: string;
+  avatar?: string;
+  coverImage?: string;
   memberCount: number;
-  posts: Post[];
-  rules: string[];
-  isPrivate: boolean;
-  moderators: string[];
+  postCount: number;
   createdAt: Date;
+  createdBy: string;
+  isPrivate: boolean;
+  tags: string[];
+  rules: string[];
+  moderators: string[];
+  members: string[];
 }
 
 export interface TherapySession {
@@ -90,40 +114,145 @@ export interface TherapySession {
   psychologistId: string;
   date: Date;
   duration: number; // em minutos
-  status: 'agendada' | 'em_andamento' | 'concluida' | 'cancelada';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
   notes?: string;
-  rating?: number;
+  rating?: number; // 1-5
   feedback?: string;
 }
 
 export interface Notification {
   id: string;
-  userId: string;
-  type: 'like' | 'comment' | 'follow' | 'session' | 'reminder';
-  title: string;
-  message: string;
-  data?: any;
-  isRead: boolean;
+  type: 'like_post' | 'comment' | 'follow' | 'therapy_session' | 'system';
+  recipientId: string;
+  senderId?: string;
+  senderName?: string;
+  postId?: string;
+  postContent?: string;
+  commentId?: string;
+  commentContent?: string;
   createdAt: Date;
+  read: boolean;
+  actionUrl?: string;
+}
+
+export interface PrivacySettings {
+  profileVisibility: 'public' | 'friends' | 'private';
+  showEmail: boolean;
+  showPhone: boolean;
+  allowMessages: boolean;
+  allowFriendRequests: boolean;
+  showOnlineStatus: boolean;
+  dataSharing: boolean;
+  allowTagging: boolean;
+  allowMentioning: boolean;
+}
+
+export interface NotificationSettings {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  messageNotifications: boolean;
+  groupNotifications: boolean;
+  sessionReminders: boolean;
+  moodReminders: boolean;
+  weeklyReports: boolean;
+  likeNotifications: boolean;
+  commentNotifications: boolean;
+  followNotifications: boolean;
+}
+
+export interface UserStats {
+  totalPosts: number;
+  totalLikes: number;
+  totalComments: number;
+  totalFollowers: number;
+  totalFollowing: number;
+  averageMood: number;
+  streakDays: number;
+  lastActivity: Date;
+}
+
+export interface SearchResult {
+  type: 'user' | 'post' | 'community';
+  id: string;
+  title: string;
+  description?: string;
+  image?: string;
+  relevance: number;
+}
+
+export interface Report {
+  id: string;
+  reporterId: string;
+  reportedUserId?: string;
+  postId?: string;
+  commentId?: string;
+  reason: string;
+  description?: string;
+  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  createdAt: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  action?: 'warning' | 'suspension' | 'ban' | 'none';
+}
+
+export interface Analytics {
+  userId: string;
+  date: Date;
+  postsCreated: number;
+  likesGiven: number;
+  likesReceived: number;
+  commentsGiven: number;
+  commentsReceived: number;
+  timeSpent: number; // em minutos
+  moodAverage: number;
+  communityEngagement: number;
+}
+
+export interface Achievement {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlockedAt: Date;
+  progress?: number;
+  maxProgress?: number;
 }
 
 export interface ChatMessage {
   id: string;
+  chatId: string;
   senderId: string;
-  receiverId: string;
   content: string;
   timestamp: Date;
   isRead: boolean;
   messageType: 'text' | 'image' | 'file';
+  metadata?: any;
 }
 
 export interface ChatRoom {
   id: string;
   participants: string[];
   lastMessage?: ChatMessage;
-  unreadCount: number;
   createdAt: Date;
   updatedAt: Date;
+  isGroup: boolean;
+  groupName?: string;
+  groupAvatar?: string;
+}
+
+export interface FileUpload {
+  id: string;
+  userId: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  downloadUrl: string;
+  uploadedAt: Date;
+  isPublic: boolean;
+  postId?: string;
+  commentId?: string;
 }
 
 // Tipos para formulários

@@ -1,246 +1,233 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CommunityGroup } from '../types';
+import { groupService, firebaseUtils } from '../services/firebaseService';
+import { useAuth } from '../contexts/AuthContext';
 
-// Mock data para desenvolvimento - será substituído pelo backend
-const mockCommunities: CommunityGroup[] = [
-  {
-    id: 'ansiedade',
-    name: 'Ansiedade & Estresse',
-    description: 'Grupo de apoio para gerenciar ansiedade e estresse do dia a dia',
-    icon: '🧠',
-    color: 'from-blue-500 to-cyan-500',
-    memberCount: 1247,
-    posts: [],
-    rules: [
-      'Respeite todos os membros',
-      'Não julgue as experiências dos outros',
-      'Mantenha a confidencialidade',
-      'Seja gentil e empático'
-    ],
-    isPrivate: false,
-    moderators: ['mod1', 'mod2'],
-    createdAt: new Date('2024-01-01')
-  },
-  {
-    id: 'autoconfianca',
-    name: 'Autoconfiança',
-    description: 'Desenvolvimento pessoal e construção de autoestima',
-    icon: '✨',
-    color: 'from-purple-500 to-pink-500',
-    memberCount: 892,
-    posts: [],
-    rules: [
-      'Celebre as conquistas dos outros',
-      'Compartilhe suas vitórias',
-      'Ofereça apoio construtivo',
-      'Mantenha um ambiente positivo'
-    ],
-    isPrivate: false,
-    moderators: ['mod3', 'mod4'],
-    createdAt: new Date('2024-01-15')
-  },
-  {
-    id: 'tdah',
-    name: 'TDAH & Foco',
-    description: 'Estratégias e suporte para pessoas com TDAH',
-    icon: '🎯',
-    color: 'from-green-500 to-emerald-500',
-    memberCount: 567,
-    posts: [],
-    rules: [
-      'Compartilhe estratégias que funcionam',
-      'Seja paciente com os outros',
-      'Respeite as diferenças',
-      'Ofereça dicas práticas'
-    ],
-    isPrivate: false,
-    moderators: ['mod5', 'mod6'],
-    createdAt: new Date('2024-02-01')
-  },
-  {
-    id: 'sono',
-    name: 'Qualidade do Sono',
-    description: 'Dicas e técnicas para melhorar a qualidade do sono',
-    icon: '😴',
-    color: 'from-indigo-500 to-purple-500',
-    memberCount: 423,
-    posts: [],
-    rules: [
-      'Compartilhe técnicas que funcionaram',
-      'Respeite os horários dos outros',
-      'Ofereça suporte para insônia',
-      'Mantenha o foco no tema'
-    ],
-    isPrivate: false,
-    moderators: ['mod7'],
-    createdAt: new Date('2024-02-15')
-  },
-  {
-    id: 'terapia',
-    name: 'Jornada da Terapia',
-    description: 'Experiências e reflexões sobre o processo terapêutico',
-    icon: '🤗',
-    color: 'from-orange-500 to-red-500',
-    memberCount: 756,
-    posts: [],
-    rules: [
-      'Respeite a privacidade das sessões',
-      'Não dê conselhos médicos',
-      'Compartilhe experiências pessoais',
-      'Ofereça suporte emocional'
-    ],
-    isPrivate: false,
-    moderators: ['mod8', 'mod9'],
-    createdAt: new Date('2024-03-01')
-  }
-];
+export interface Community {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  memberCount: number;
+  maxMembers: number;
+  isPrivate: boolean;
+  category: string;
+  tags: string[];
+  createdAt: any;
+  updatedAt: any;
+  lastActivity: any;
+  creatorId: string;
+  members: string[];
+  onlineCount: number;
+  isMember: boolean;
+  posts: string[];
+  rules: string[];
+}
 
 export const useCommunities = () => {
-  const [communities, setCommunities] = useState<CommunityGroup[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [userCommunities, setUserCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userCommunities, setUserCommunities] = useState<string[]>([]);
+  const { user } = useAuth();
 
-  // Simular carregamento inicial
-  useEffect(() => {
-    const loadCommunities = async () => {
-      try {
-        setLoading(true);
-        // Simular delay de rede
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setCommunities(mockCommunities);
-        
-        // Simular comunidades do usuário
-        setUserCommunities(['ansiedade', 'autoconfianca']);
-        setError(null);
-      } catch (err) {
-        setError('Erro ao carregar comunidades');
-        console.error('Erro ao carregar comunidades:', err);
-      } finally {
-        setLoading(false);
+  // Carregar todas as comunidades
+  const loadCommunities = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const fetchedCommunities = await groupService.getGroups(50);
+      
+      // Converter timestamps e formatar dados
+      const formattedCommunities = fetchedCommunities.map(community => ({
+        ...community,
+        createdAt: firebaseUtils.convertTimestamp(community.createdAt),
+        updatedAt: firebaseUtils.convertTimestamp(community.updatedAt),
+        lastActivity: firebaseUtils.convertTimestamp(community.lastActivity),
+        isMember: community.members?.includes(user?.uid || '') || false
+      }));
+      
+      setCommunities(formattedCommunities);
+      
+      // Filtrar comunidades do usuário
+      const userComms = formattedCommunities.filter(comm => comm.isMember);
+      setUserCommunities(userComms);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar comunidades');
+      console.error('Erro ao carregar comunidades:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid]);
+
+  // Carregar comunidades por categoria
+  const loadCommunitiesByCategory = useCallback(async (category: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const fetchedCommunities = await groupService.getGroupsByCategory(category);
+      
+      // Converter timestamps e formatar dados
+      const formattedCommunities = fetchedCommunities.map(community => ({
+        ...community,
+        createdAt: firebaseUtils.convertTimestamp(community.createdAt),
+        updatedAt: firebaseUtils.convertTimestamp(community.updatedAt),
+        lastActivity: firebaseUtils.convertTimestamp(community.lastActivity),
+        isMember: community.members?.includes(user?.uid || '') || false
+      }));
+      
+      setCommunities(formattedCommunities);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar comunidades por categoria');
+      console.error('Erro ao carregar comunidades por categoria:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid]);
+
+  // Criar nova comunidade
+  const createCommunity = useCallback(async (communityData: Omit<Community, 'id' | 'createdAt' | 'updatedAt' | 'lastActivity' | 'members' | 'memberCount' | 'onlineCount' | 'posts' | 'isMember'>) => {
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    try {
+      const newCommunityData = {
+        ...communityData,
+        creatorId: user.uid,
+        members: [user.uid],
+        memberCount: 1,
+        onlineCount: 0,
+        posts: [],
+        rules: communityData.rules || []
+      };
+
+      const result = await groupService.createGroup(newCommunityData);
+      
+      if (result.success) {
+        // Recarregar comunidades para incluir a nova
+        await loadCommunities();
+        return result.groupId;
       }
-    };
-
-    loadCommunities();
-  }, []);
+      
+      return null;
+    } catch (err) {
+      console.error('Erro ao criar comunidade:', err);
+      throw err;
+    }
+  }, [user, loadCommunities]);
 
   // Entrar em uma comunidade
   const joinCommunity = useCallback(async (communityId: string) => {
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     try {
-      if (!userCommunities.includes(communityId)) {
-        setUserCommunities(prev => [...prev, communityId]);
+      const result = await groupService.joinGroup(communityId, user.uid);
+      
+      if (result.success) {
+        // Atualizar estado local
+        setCommunities(prevCommunities => 
+          prevCommunities.map(community => {
+            if (community.id === communityId) {
+              return {
+                ...community,
+                members: [...community.members, user.uid],
+                memberCount: community.memberCount + 1,
+                isMember: true
+              };
+            }
+            return community;
+          })
+        );
         
-        // Atualizar contador de membros
-        setCommunities(prev => prev.map(community => 
-          community.id === communityId 
-            ? { ...community, memberCount: community.memberCount + 1 }
-            : community
-        ));
+        // Atualizar lista de comunidades do usuário
+        const community = communities.find(c => c.id === communityId);
+        if (community) {
+          setUserCommunities(prev => [...prev, { ...community, isMember: true }]);
+        }
         
-        // Aqui seria feita a chamada para o backend
-        // await api.joinCommunity(communityId);
+        return true;
       }
+      
+      return false;
     } catch (err) {
-      setError('Erro ao entrar na comunidade');
+      console.error('Erro ao entrar na comunidade:', err);
       throw err;
     }
-  }, [userCommunities]);
+  }, [user, communities]);
 
   // Sair de uma comunidade
   const leaveCommunity = useCallback(async (communityId: string) => {
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     try {
-      setUserCommunities(prev => prev.filter(id => id !== communityId));
+      const result = await groupService.leaveGroup(communityId, user.uid);
       
-      // Atualizar contador de membros
-      setCommunities(prev => prev.map(community => 
-        community.id === communityId 
-          ? { ...community, memberCount: Math.max(0, community.memberCount - 1) }
-          : community
-      ));
+      if (result.success) {
+        // Atualizar estado local
+        setCommunities(prevCommunities => 
+          prevCommunities.map(community => {
+            if (community.id === communityId) {
+              return {
+                ...community,
+                members: community.members.filter(id => id !== user.uid),
+                memberCount: Math.max(0, community.memberCount - 1),
+                isMember: false
+              };
+            }
+            return community;
+          })
+        );
+        
+        // Remover da lista de comunidades do usuário
+        setUserCommunities(prev => prev.filter(c => c.id !== communityId));
+        
+        return true;
+      }
       
-      // Aqui seria feita a chamada para o backend
-      // await api.leaveCommunity(communityId);
+      return false;
     } catch (err) {
-      setError('Erro ao sair da comunidade');
+      console.error('Erro ao sair da comunidade:', err);
       throw err;
     }
-  }, []);
-
-  // Verificar se usuário está em uma comunidade
-  const isUserInCommunity = useCallback((communityId: string) => {
-    return userCommunities.includes(communityId);
-  }, [userCommunities]);
+  }, [user]);
 
   // Buscar comunidade por ID
   const getCommunityById = useCallback((communityId: string) => {
     return communities.find(community => community.id === communityId);
   }, [communities]);
 
-  // Filtrar comunidades por categoria
-  const filterCommunitiesByCategory = useCallback((category: string) => {
-    return communities.filter(community => 
-      community.description.toLowerCase().includes(category.toLowerCase()) ||
-      community.name.toLowerCase().includes(category.toLowerCase())
-    );
-  }, [communities]);
+  // Verificar se usuário é membro de uma comunidade
+  const isUserMember = useCallback((communityId: string) => {
+    if (!user) return false;
+    const community = communities.find(c => c.id === communityId);
+    return community ? community.isMember : false;
+  }, [user, communities]);
 
-  // Obter comunidades populares (ordenadas por número de membros)
-  const getPopularCommunities = useCallback((limit = 5) => {
-    return [...communities]
-      .sort((a, b) => b.memberCount - a.memberCount)
-      .slice(0, limit);
-  }, [communities]);
-
-  // Obter comunidades do usuário
-  const getUserCommunities = useCallback(() => {
-    return communities.filter(community => 
-      userCommunities.includes(community.id)
-    );
-  }, [communities, userCommunities]);
-
-  // Criar nova comunidade (apenas para moderadores/admin)
-  const createCommunity = useCallback(async (communityData: Omit<CommunityGroup, 'id' | 'createdAt' | 'memberCount' | 'posts' | 'moderators'>) => {
-    try {
-      const newCommunity: CommunityGroup = {
-        ...communityData,
-        id: `community-${Date.now()}`,
-        memberCount: 1, // Criador é o primeiro membro
-        posts: [],
-        moderators: ['current-user-id'], // ID do usuário atual
-        createdAt: new Date()
-      };
-
-      setCommunities(prev => [newCommunity, ...prev]);
-      setUserCommunities(prev => [...prev, newCommunity.id]);
-      
-      // Aqui seria feita a chamada para o backend
-      // await api.createCommunity(communityData);
-      
-      return newCommunity;
-    } catch (err) {
-      setError('Erro ao criar comunidade');
-      throw err;
+  // Carregar comunidades na inicialização
+  useEffect(() => {
+    if (user) {
+      loadCommunities();
     }
-  }, []);
-
-  // Limpar erro
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  }, [user, loadCommunities]);
 
   return {
     communities,
     userCommunities,
     loading,
     error,
+    loadCommunities,
+    loadCommunitiesByCategory,
+    createCommunity,
     joinCommunity,
     leaveCommunity,
-    isUserInCommunity,
     getCommunityById,
-    filterCommunitiesByCategory,
-    getPopularCommunities,
-    getUserCommunities,
-    createCommunity,
-    clearError
+    isUserMember,
+    refreshCommunities: loadCommunities
   };
 };

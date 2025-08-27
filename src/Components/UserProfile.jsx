@@ -256,7 +256,7 @@ const UserProfile = () => {
         )}
 
         {/* Banner */}
-        <div className="relative h-48 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="relative h-48 bg-white">
           {isOwnProfile && (
             <label className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 p-2 rounded-full cursor-pointer transition-all duration-300 backdrop-blur-md">
               <input
@@ -494,11 +494,11 @@ const UserProfile = () => {
                       <div className="flex items-center space-x-8 text-white/50">
                         <button className="flex items-center space-x-2 hover:text-blue-400 transition-colors">
                           <MessageCircle className="w-5 h-5" />
-                          <span>{post.comments || 0}</span>
+                          <span>{post.commentCount || 0}</span>
                         </button>
                         <button className="flex items-center space-x-2 hover:text-red-400 transition-colors">
                           <Heart className="w-5 h-5" />
-                          <span>{post.likes || 0}</span>
+                          <span>{Array.isArray(post.likes) ? post.likes.length : 0}</span>
                         </button>
                         <button className="flex items-center space-x-2 hover:text-green-400 transition-colors">
                           <Share2 className="w-5 h-5" />

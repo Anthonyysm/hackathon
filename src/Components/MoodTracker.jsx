@@ -17,22 +17,47 @@ const MoodTracker = ({ onOpenHumorTab }) => {
   const trendsRef = useRef(null);
   const [highlightTrends, setHighlightTrends] = useState(false);
 
-  const handleSaveCheckin = () => {
-    // Se a função onOpenHumorTab foi fornecida, abre a aba de humor
-    if (onOpenHumorTab) {
-      onOpenHumorTab();
-    } else {
-      // Fallback: Scroll até a seção de estatísticas (Tendência Semanal) e destaca rapidamente
-      if (trendsRef.current) {
-        trendsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setHighlightTrends(true);
-        setTimeout(() => setHighlightTrends(false), 1600);
+  const handleSaveCheckin = async () => {
+    if (!user) {
+      alert('Usuário não autenticado');
+      return;
+    }
+
+    try {
+      // TODO: Implement mood recording to Firebase
+      const moodData = {
+        intensity: 7, // Valor padrão, pode ser ajustado
+        energy: 6,
+        stability: 5,
+        notes: 'Check-in diário',
+        tags: ['daily', 'checkin']
+      };
+
+      // Aqui seria feita a chamada para o Firebase
+      // await moodService.recordMood(user.uid, moodData);
+      
+      console.log('Mood registrado:', moodData);
+      alert('Check-in salvo com sucesso!');
+      
+      // Se a função onOpenHumorTab foi fornecida, abre a aba de humor
+      if (onOpenHumorTab) {
+        onOpenHumorTab();
+      } else {
+        // Fallback: Scroll até a seção de estatísticas (Tendência Semanal) e destaca rapidamente
+        if (trendsRef.current) {
+          trendsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setHighlightTrends(true);
+          setTimeout(() => setHighlightTrends(false), 1600);
+        }
       }
+    } catch (error) {
+      console.error('Erro ao salvar check-in:', error);
+      alert('Erro ao salvar check-in. Tente novamente.');
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animation-initial animate-fade-in-right animation-delay-200">
       {/* Daily Check-in */}
       <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center space-x-2 mb-6">

@@ -34,7 +34,7 @@ const Notifications = () => {
       read: false,
       postId: 'post123',
       icon: Heart,
-      iconColor: 'text-red-400'
+      iconColor: 'text-white'
     },
     {
       id: 2,
@@ -48,7 +48,7 @@ const Notifications = () => {
       read: false,
       postId: 'post123',
       icon: MessageCircle,
-      iconColor: 'text-blue-400'
+      iconColor: 'text-white'
     },
     {
       id: 3,
@@ -61,7 +61,7 @@ const Notifications = () => {
       createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2h atrás
       read: true,
       icon: UserPlus,
-      iconColor: 'text-green-400'
+      iconColor: 'text-white'
     },
     {
       id: 4,
@@ -76,7 +76,7 @@ const Notifications = () => {
       groupId: 'group123',
       groupName: 'Ansiedade e Bem-estar',
       icon: Bell,
-      iconColor: 'text-purple-400'
+      iconColor: 'text-white'
     },
     {
       id: 5,
@@ -90,7 +90,7 @@ const Notifications = () => {
       read: false,
       sessionId: 'session123',
       icon: Bell,
-      iconColor: 'text-orange-400'
+      iconColor: 'text-white'
     },
     {
       id: 6,
@@ -101,7 +101,7 @@ const Notifications = () => {
       createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6h atrás
       read: true,
       icon: Heart,
-      iconColor: 'text-pink-400'
+      iconColor: 'text-white'
     }
   ];
 
@@ -197,7 +197,7 @@ const Notifications = () => {
   }
 
     return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
       {/* Header */}
       <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">

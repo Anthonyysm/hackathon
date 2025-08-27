@@ -14,6 +14,8 @@ import {
   Target,
   Award
 } from 'lucide-react';
+import { auth, db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 const HumorTracker = () => {
@@ -90,6 +92,14 @@ const HumorTracker = () => {
     };
   });
 
+  const handleMoodSubmit = () => {
+    // TODO: Implement mood submission
+    console.log('Mood submitted:', { selectedMood, selectedCause });
+    setShowMoodForm(false);
+    setSelectedMood('');
+    setSelectedCause('');
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -136,7 +146,7 @@ const HumorTracker = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
       {/* Header with Tabs */}
       <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">

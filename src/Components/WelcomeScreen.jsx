@@ -1,16 +1,49 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Sun, Moon, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useGreeting } from '../hooks/useGreeting';
 import Card from './ui/Card';
 
-const WelcomeScreen = React.memo(() => {
+const WelcomeScreen = React.memo(({ showWelcomeMessage = false }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showGreeting, setShowGreeting] = useState(true); // Sempre mostrar por padrão
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const { text: greetingText, icon: GreetingIcon, formattedDate } = useGreeting(user?.displayName);
+  const { text: greetingText, icon: GreetingIcon, formattedDate } = useGreeting(user?.username || user?.displayName);
+
+  // Controla a exibição do texto de boas-vindas
+  useEffect(() => {
+    if (showWelcomeMessage) {
+      // Para usuários de primeira vez, reinicia a exibição
+      setShowGreeting(true);
+      
+      // Esconde o texto após 1.5 segundos
+      const timer = setTimeout(() => {
+        setShowGreeting(false);
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcomeMessage]);
+
+  // Estado para controlar a animação de fade-out
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  // Controla a animação de fade-out apenas quando showWelcomeMessage for true
+  useEffect(() => {
+    if (showWelcomeMessage && showGreeting) {
+      // Inicia o fade-out após 1 segundo (deixa 0.5s para a animação)
+      const fadeTimer = setTimeout(() => {
+        setIsFadingOut(true);
+      }, 1000);
+      
+      return () => clearTimeout(fadeTimer);
+    } else {
+      setIsFadingOut(false);
+    }
+  }, [showWelcomeMessage, showGreeting]);
 
   const motivationalMessages = useMemo(() => [
     {
@@ -70,23 +103,27 @@ const WelcomeScreen = React.memo(() => {
   }, [prevSlide, nextSlide]);
 
   return (
-    <Card variant="glass" padding="lg" className="mb-8">
+    <Card variant="glass" padding="lg" className="mb-8 animation-initial animate-fade-in-up">
       {/* Greeting */}
-      <Card.Header>
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center space-x-2 mb-2">
-            <GreetingIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
-            <h2 className="text-2xl font-bold text-white">{greetingText}</h2>
+      {showGreeting && (
+        <Card.Header>
+          <div className={`text-center mb-6 animation-initial animate-fade-in-up animation-delay-100 ${
+            showWelcomeMessage && isFadingOut ? 'welcome-greeting-fade-out' : ''
+          }`}>
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <GreetingIcon className="w-6 h-6 text-gray-400" aria-hidden="true" />
+              <h2 className="text-2xl font-bold text-white">{greetingText}</h2>
+            </div>
+            <time className="text-gray-400" dateTime={new Date().toISOString()}>
+              {formattedDate}
+            </time>
           </div>
-          <time className="text-gray-400" dateTime={new Date().toISOString()}>
-            {formattedDate}
-          </time>
-        </div>
-      </Card.Header>
+        </Card.Header>
+      )}
 
       <Card.Content>
         {/* Motivational Carousel */}
-        <Card variant="glass" padding="lg" className="mb-6">
+        <Card variant="glass" padding="lg" className="mb-6 animation-initial animate-fade-in-up animation-delay-200">
           <div 
             onKeyDown={handleKeyDown}
             tabIndex={0}

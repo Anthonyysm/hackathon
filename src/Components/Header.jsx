@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Search, Home, MessageCircle, Users, Calendar, BarChart3, Settings, Menu, X, Bell, BookOpen, HelpCircle, User, LogOut } from 'lucide-react';
+import { Search, Home, MessageCircle, Calendar, BarChart3, Settings, Menu, X, Bell, BookOpen, HelpCircle, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Input from '../Components/ui/Input';
@@ -36,12 +36,6 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
       { name: 'Diário', tab: 'diary', icon: BookOpen },
       { name: 'Humor', tab: 'humor', icon: BarChart3 },
     ];
-
-    if (user?.role === 'psicologo') {
-      items.splice(2, 0, { name: 'Sessões', tab: 'sessions', icon: Users });
-    } else if (user?.role === 'cliente') {
-      items.splice(2, 0, { name: 'Sessões', tab: 'sessions', icon: Calendar });
-    }
 
     return items;
   }, [user?.role]);
@@ -139,7 +133,7 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
   }
 
   return (
-    <header className="glass-header sticky top-0 z-50">
+    <header className="glass-header sticky top-0 z-30 animation-initial animate-slide-in-top">
       <div className="container-responsive">
         <div className="flex items-center justify-between h-16">
           {/* Left Section */}
@@ -184,9 +178,9 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
                   value={searchQuery}
                   onChange={handleSearchChange}
                   variant="glass"
-                  size="md"
+                  size="sm"
                   radius="xl"
-                  className="w-96"
+                  className="w-80"
                   leftIcon={Search}
                   onLeftIconClick={() => handleSearch({ preventDefault: () => {} })}
                   aria-label="Pesquisar na plataforma"
@@ -362,6 +356,19 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
                   <span>Configurações</span>
                 </button>
 
+                {user && (
+                  <button
+                    onClick={() => handleNavClick('profile')}
+                    className={`mobile-menu-item ${activeTab === 'profile' ? 'text-white' : ''}`}
+                    role="menuitem"
+                    aria-label="Meu perfil"
+                    aria-current={activeTab === 'profile' ? 'page' : undefined}
+                  >
+                    <User className="w-6 h-6" aria-hidden="true" />
+                    <span>Meu Perfil</span>
+                  </button>
+                )}
+
                 <button
                   onClick={onStartTour}
                   className="mobile-menu-item"
@@ -375,7 +382,7 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
                 {user ? (
                   <button 
                     onClick={handleLogout} 
-                    className="flex items-center mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 trans"
+                    className="flex items-center mt-4 px-4 py-2 bg-white text-black rounded-md hover:bg-gray-100 trans"
                     role="menuitem"
                     aria-label="Sair da conta"
                   >

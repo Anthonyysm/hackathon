@@ -14,9 +14,10 @@ import {
   Calendar
 } from 'lucide-react';
 
-const WelcomeTour = ({ isOpen, onClose, userRole = 'cliente' }) => {
+const WelcomeTour = ({ isOpen, onClose, userRole = 'cliente', isFirstTime = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());
+  const [isClosing, setIsClosing] = useState(false);
 
   const steps = [
     {
@@ -90,6 +91,7 @@ const WelcomeTour = ({ isOpen, onClose, userRole = 'cliente' }) => {
     if (isOpen) {
       setCurrentStep(0);
       setCompletedSteps(new Set());
+      setIsClosing(false);
     }
   }, [isOpen]);
 
@@ -107,12 +109,21 @@ const WelcomeTour = ({ isOpen, onClose, userRole = 'cliente' }) => {
   };
 
   const handleSkip = () => {
-    onClose();
+    handleClose();
   };
 
   const handleComplete = () => {
     setCompletedSteps(prev => new Set([...prev, steps[currentStep].id]));
-    onClose();
+    handleClose();
+  };
+
+  const handleClose = () => {
+    setIsClosing(true);
+    
+    // Fechar o tour
+    setTimeout(() => {
+      onClose();
+    }, 600);
   };
 
   const isStepCompleted = (stepId) => completedSteps.has(stepId);
@@ -125,103 +136,119 @@ const WelcomeTour = ({ isOpen, onClose, userRole = 'cliente' }) => {
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-black/95 border border-white/10 rounded-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        {/* Progress Bar */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between text-sm text-white/60 mb-2">
-            <span>Passo {currentStep + 1} de {steps.length}</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <div className="w-full bg-white/10 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        </div>
-
-        {/* Step Content */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <IconComponent className="w-10 h-10 text-white" />
-          </div>
-          
-          <h2 className="text-2xl font-semibold text-white mb-4">
-            {currentStepData.title}
-          </h2>
-          
-          <p className="text-white/80 text-lg leading-relaxed">
-            {currentStepData.description}
-          </p>
-        </div>
-
-        {/* Step Indicators */}
-        <div className="flex justify-center space-x-2 mb-8">
-          {steps.map((step, index) => (
-            <button
-              key={step.id}
-              onClick={() => setCurrentStep(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentStep
-                  ? 'bg-blue-500 scale-125'
-                  : isStepCompleted(step.id)
-                  ? 'bg-green-500'
-                  : 'bg-white/20 hover:bg-white/40'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={handleSkip}
-            className="text-white/60 hover:text-white transition-colors text-sm"
-          >
-            Pular tour
-          </button>
-
-          <div className="flex space-x-3">
-            {currentStep > 0 && (
-              <button
-                onClick={handlePrevious}
-                className="flex items-center space-x-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 transition-all duration-300"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Anterior</span>
-              </button>
-            )}
-
-            {isLastStep ? (
-              <button
-                onClick={handleComplete}
-                className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
-              >
-                <Check className="w-4 h-4" />
-                <span>Começar a usar</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleNext}
-                className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
-              >
-                <span>Próximo</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors p-2"
+    <>
+      {/* Background com animação baseada na primeira vez */}
+      <div 
+        className={`fixed inset-0 z-40 transition-all duration-800 ${
+          isFirstTime 
+            ? 'bg-black' 
+            : 'bg-black/80 backdrop-blur-sm'
+        } ${isClosing ? 'background-fade-out' : 'background-fade-in'}`}
+      />
+      
+      {/* Modal principal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div 
+          className={`bg-black/95 border border-white/10 rounded-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto ${
+            isClosing ? 'tour-modal-out' : 'tour-modal-in'
+          }`}
         >
-          <X className="w-5 h-5" />
-        </button>
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between text-sm text-white/60 mb-2">
+              <span>Passo {currentStep + 1} de {steps.length}</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-2">
+              <div 
+                className="bg-white h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Step Content */}
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6">
+              <IconComponent className="w-10 h-10 text-black" />
+            </div>
+            
+            <h2 className="text-2xl font-semibold text-white mb-4">
+              {currentStepData.title}
+            </h2>
+            
+            <p className="text-white/80 text-lg leading-relaxed">
+              {currentStepData.description}
+            </p>
+          </div>
+
+          {/* Step Indicators */}
+          <div className="flex justify-center space-x-2 mb-8">
+            {steps.map((step, index) => (
+              <button
+                key={step.id}
+                onClick={() => setCurrentStep(index)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === currentStep
+                    ? 'bg-white scale-125'
+                    : isStepCompleted(step.id)
+                    ? 'bg-white'
+                    : 'bg-white/20 hover:bg-white/40'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handleSkip}
+              className="text-white/60 hover:text-white transition-colors text-sm"
+            >
+              Pular tour
+            </button>
+
+            <div className="flex space-x-3">
+              {currentStep > 0 && (
+                <button
+                  onClick={handlePrevious}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 transition-all duration-300"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Anterior</span>
+                </button>
+              )}
+
+              {isLastStep ? (
+                <button
+                  onClick={handleComplete}
+                  className="flex items-center space-x-2 px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-100 transition-all duration-300"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Começar a usar</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className="flex items-center space-x-2 px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-100 transition-all duration-300"
+                >
+                  <span>Próximo</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Close Button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors p-2"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

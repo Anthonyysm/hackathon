@@ -1,19 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Users, TrendingUp, Sparkles, Plus, Check } from 'lucide-react';
+import Confetti from './Confetti';
 
-const SuggestedGroups = () => {
+const SuggestedGroups = ({ setActiveTab }) => {
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
   // Mock data para desenvolvimento
   const communities = [
     {
       id: 1,
-      name: "Ansiedade e Bem-estar",
+      name: "Ansiedade",
       icon: "🧘",
       memberCount: 1250,
       description: "Compartilhe experiências e dicas para lidar com ansiedade"
     },
     {
       id: 2,
-      name: "Depressão - Apoio",
+      name: "Apoio para Depressão",
       icon: "🌱",
       memberCount: 980,
       description: "Um espaço seguro para falar sobre depressão"
@@ -46,6 +48,7 @@ const SuggestedGroups = () => {
 
   const joinCommunity = (communityId) => {
     setUserCommunities(prev => [...prev, communityId]);
+    setConfettiTrigger(prev => prev + 1);
   };
 
   const leaveCommunity = (communityId) => {
@@ -72,23 +75,25 @@ const SuggestedGroups = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-xl font-semibold text-white mb-2">
-          Comunidades Sugeridas
-        </h2>
-        <p className="text-white/70 text-sm">
-          Descubra grupos que podem te interessar
-        </p>
-      </div>
+    <>
+      <Confetti trigger={confettiTrigger} />
+      <div className="space-y-6 animation-initial animate-fade-in-left animation-delay-100">
+             {/* Header */}
+       <div className="text-center section-header">
+         <h2 className="text-xl font-semibold text-white mb-2">
+           Comunidades Sugeridas
+         </h2>
+         <p className="text-white/70 text-sm">
+           Descubra grupos que podem te interessar
+         </p>
+       </div>
 
-      {/* Popular Communities */}
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-orange-400" />
-          <h3 className="text-lg font-medium text-white">Em Alta</h3>
-        </div>
+             {/* Popular Communities */}
+       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 community-card">
+         <div className="flex items-center space-x-2 mb-4">
+           <TrendingUp className="w-5 h-5 text-white trending-icon" />
+           <h3 className="text-lg font-medium text-white">Em Alta</h3>
+         </div>
         
         <div className="space-y-4">
           {popularCommunities.slice(0, 3).map((community) => {
@@ -97,9 +102,9 @@ const SuggestedGroups = () => {
             return (
               <div key={community.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                    {community.icon}
-                  </div>
+                                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-bold text-lg community-icon">
+                   {community.icon}
+                 </div>
                   <div>
                     <h4 className="font-medium text-white text-sm">
                       {community.name}
@@ -110,17 +115,17 @@ const SuggestedGroups = () => {
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => isMember ? leaveCommunity(community.id) : joinCommunity(community.id)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
-                    isMember 
-                      ? 'bg-green-500 hover:bg-green-600' 
-                      : 'bg-white hover:bg-white/90'
-                  }`}
-                  title={isMember ? 'Sair da comunidade' : 'Entrar na comunidade'}
-                >
+                                 <button
+                   onClick={() => isMember ? leaveCommunity(community.id) : joinCommunity(community.id)}
+                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                     isMember 
+                       ? 'bg-white hover:bg-gray-100 check-button' 
+                       : 'bg-white hover:bg-gray-100 plus-button'
+                   }`}
+                   title={isMember ? 'Sair da comunidade' : 'Entrar na comunidade'}
+                 >
                   {isMember ? (
-                    <Check className="w-4 h-4 text-white" />
+                    <Check className="w-4 h-4 text-black" />
                   ) : (
                     <Plus className="w-4 h-4 text-black" />
                   )}
@@ -131,12 +136,12 @@ const SuggestedGroups = () => {
         </div>
       </div>
 
-      {/* New Communities */}
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Sparkles className="w-5 h-5 text-yellow-400" />
-          <h3 className="text-lg font-medium text-white">Novidades</h3>
-        </div>
+             {/* New Communities */}
+       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 community-card">
+         <div className="flex items-center space-x-2 mb-4">
+           <Sparkles className="w-5 h-5 text-white sparkles-icon" />
+           <h3 className="text-lg font-medium text-white">Novidades</h3>
+         </div>
         
         <div className="space-y-4">
           {communities
@@ -145,9 +150,9 @@ const SuggestedGroups = () => {
             .map((community) => (
               <div key={community.id} className="p-3 bg-white/5 rounded-lg border border-white/10">
                 <div className="flex items-center space-x-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm">
-                    {community.icon}
-                  </div>
+                                   <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black font-bold text-sm community-icon">
+                   {community.icon}
+                 </div>
                   <h4 className="font-medium text-white text-sm">
                     {community.name}
                   </h4>
@@ -162,11 +167,11 @@ const SuggestedGroups = () => {
                     {community.memberCount} membros
                   </span>
                   
-                  <button
-                    onClick={() => joinCommunity(community.id)}
-                    className="w-8 h-8 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-all duration-200 cursor-pointer"
-                    title="Entrar na comunidade"
-                  >
+                                     <button
+                     onClick={() => joinCommunity(community.id)}
+                     className="w-8 h-8 rounded-full bg-white hover:bg-white/90 flex items-center justify-center transition-all duration-200 cursor-pointer plus-button"
+                     title="Entrar na comunidade"
+                   >
                     <Plus className="w-4 h-4 text-black" />
                   </button>
                 </div>
@@ -175,13 +180,13 @@ const SuggestedGroups = () => {
         </div>
       </div>
 
-      {/* Your Communities */}
-      {userCommunities.length > 0 && (
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Users className="w-5 h-5 text-blue-400" />
-            <h3 className="text-lg font-medium text-white">Suas Comunidades</h3>
-          </div>
+             {/* Your Communities */}
+       {userCommunities.length > 0 && (
+         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 community-card">
+           <div className="flex items-center space-x-2 mb-4">
+             <Users className="w-5 h-5 text-white users-icon" />
+             <h3 className="text-lg font-medium text-white">Suas Comunidades</h3>
+           </div>
           
           <div className="space-y-3">
             {userCommunities.slice(0, 3).map((communityId) => {
@@ -190,9 +195,9 @@ const SuggestedGroups = () => {
               
               return (
                 <div key={community.id} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
-                    {community.icon}
-                  </div>
+                                   <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black font-bold text-sm community-icon">
+                   {community.icon}
+                 </div>
                   <div className="flex-1">
                     <h4 className="font-medium text-white text-sm">
                       {community.name}
@@ -202,12 +207,12 @@ const SuggestedGroups = () => {
                     </p>
                   </div>
                   
-                  <button
-                    onClick={() => leaveCommunity(community.id)}
-                    className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all duration-200 cursor-pointer"
-                    title="Sair da comunidade"
-                  >
-                    <Check className="w-4 h-4 text-white" />
+                                     <button
+                     onClick={() => leaveCommunity(community.id)}
+                     className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center transition-all duration-200 cursor-pointer check-button"
+                     title="Sair da comunidade"
+                   >
+                    <Check className="w-4 h-4 text-black" />
                   </button>
                 </div>
               );
@@ -216,7 +221,7 @@ const SuggestedGroups = () => {
           
           {userCommunities.length > 3 && (
             <div className="text-center pt-3">
-              <button className="px-4 py-2 text-blue-400 hover:text-blue-300 transition-colors text-sm">
+              <button className="px-4 py-2 text-white hover:text-gray-300 transition-colors text-sm">
                 Ver Todas ({userCommunities.length})
               </button>
             </div>
@@ -226,14 +231,15 @@ const SuggestedGroups = () => {
 
       {/* Explore More Button */}
       <div className="text-center">
-        <button 
-          onClick={() => window.location.href = '/explore-communities'}
-          className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-all duration-200"
-        >
-          Explorar Mais Comunidades
-        </button>
+                 <button 
+           onClick={() => setActiveTab('chat')}
+           className="w-full px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white font-medium transition-all duration-200 explore-button"
+         >
+           Explorar Mais Comunidades
+         </button>
       </div>
     </div>
+    </>
   );
 };
 

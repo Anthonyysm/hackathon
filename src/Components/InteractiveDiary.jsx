@@ -32,7 +32,7 @@ const InteractiveDiary = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animation-initial animate-fade-in-up animation-delay-100">
       {/* Diary Writing */}
       <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center space-x-2 mb-6">

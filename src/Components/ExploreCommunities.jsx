@@ -29,7 +29,7 @@ const ExploreCommunities = () => {
   const mockCommunities = [
     {
       id: 1,
-      name: "Ansiedade e Bem-estar",
+      name: "Ansiedade ",
       description: "Um espaço seguro para compartilhar experiências sobre ansiedade e encontrar apoio mútuo. Dicas, técnicas de respiração e muito mais.",
       icon: "🧘",
       memberCount: 1250,
@@ -43,7 +43,7 @@ const ExploreCommunities = () => {
     },
     {
       id: 2,
-      name: "Depressão - Apoio",
+      name: "Apoio Emocional",
       description: "Comunidade de apoio para pessoas que lidam com depressão. Aqui você não está sozinho(a).",
       icon: "🌱",
       memberCount: 980,
@@ -229,7 +229,7 @@ const ExploreCommunities = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
       {/* Header */}
       <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center space-x-4">
@@ -323,7 +323,7 @@ const ExploreCommunities = () => {
                 {/* Community Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl">
                       {community.icon}
                     </div>
                     <div>
@@ -344,13 +344,13 @@ const ExploreCommunities = () => {
                     onClick={() => isMember ? leaveCommunity(community.id) : joinCommunity(community.id)}
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                       isMember
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-white hover:bg-white/90'
+                        ? 'bg-white hover:bg-gray-100'
+                        : 'bg-white hover:bg-gray-100'
                     }`}
                     title={isMember ? 'Sair da comunidade' : 'Entrar na comunidade'}
                   >
                     {isMember ? (
-                      <Check className="w-5 h-5 text-white" />
+                      <Check className="w-5 h-5 text-black" />
                     ) : (
                       <Plus className="w-5 h-5 text-black" />
                     )}
@@ -399,7 +399,7 @@ const ExploreCommunities = () => {
                     {community.moderators.map((mod, index) => (
                       <span
                         key={index}
-                        className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded"
+                        className="text-xs text-white bg-white/10 px-2 py-1 rounded"
                       >
                         {mod}
                       </span>
@@ -451,7 +451,6 @@ const ExploreCommunities = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

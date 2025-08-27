@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, Phone, Calendar } from 'lucide-react';
-import LightRays from './Components/LightRays';
+import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, Phone, Calendar, Brain, AtSign } from 'lucide-react';
 
 const Register = () => {
   const [role, setRole] = useState('cliente'); // 'cliente' | 'psicologo'
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     birthDate: '',
     phone: '',
@@ -25,6 +25,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hoveredButton, setHoveredButton] = useState(null);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -34,34 +35,57 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validar campos obrigatórios
+    if (!formData.name || !formData.username || !formData.email || !formData.birthDate || !formData.phone || !formData.password || !formData.confirmPassword) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+    
     if (formData.password !== formData.confirmPassword) {
       alert('As senhas não coincidem');
       return;
     }
+
+    // Validar formato do username (apenas letras, números e underscore)
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(formData.username)) {
+      alert('O username deve ter entre 3 e 20 caracteres e conter apenas letras, números e underscore (_).');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch(
-        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDkPhYGNEdBtRdEeWwHCWfCFtLWqmGBTO8',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            returnSecureToken: true,
-          }),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Erro ao registrar');
-      }
+      // Criar usuário no Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
 
-      // Opcional: Salvar dados adicionais no Firestore, se necessário
-      // Exemplo: await setDoc(doc(db, 'users', data.localId), { ... });
+      // Atualizar perfil do usuário
+      await updateProfile(user, {
+        displayName: formData.name
+      });
+
+      // Salvar dados adicionais no Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        displayName: formData.name,
+        username: formData.username.toLowerCase(),
+        email: formData.email,
+        birthDate: formData.birthDate,
+        phone: formData.phone,
+        role: role,
+        createdAt: serverTimestamp(),
+        // Campos específicos do psicólogo
+        ...(role === 'psicologo' && {
+          crp: formData.crp,
+          specialty: formData.specialty,
+          yearsExperience: formData.yearsExperience,
+          acceptsOnline: formData.acceptsOnline,
+          bio: formData.bio
+        })
+      });
 
       alert('Conta criada com sucesso!');
-      window.location.hash = '#/login';
+      navigate('/connected');
     } catch (error) {
       console.error('Erro ao registrar:', error);
       alert(error.message);
@@ -72,21 +96,51 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden text-white">
-      <LightRays />
+      {/* Light rays component simulation */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute top-0 left-1/2 w-px h-full bg-gradient-to-b from-white/20 via-white/5 to-transparent transform-gpu origin-top"
+            style={{
+              transform: `translateX(-50%) rotate(${i * 45}deg)`,
+              animation: `pulse ${2 + i * 0.5}s ease-in-out infinite alternate`
+            }}
+          />
+        ))}
+      </div>
 
-      <div className="relative w-full max-w-md z-10">
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-white/20 rounded-full animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 2}s`
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="relative w-full max-w-md z-10 animate-fade-in animate-slide-up">
         <button
           type="button"
-          onClick={() => { window.location.hash = '#/'; }}
-          className="absolute -top-2 -left-2 p-2 text-white/80 hover:text-white transition-colors"
+          onClick={() => navigate('/')}
+          className="absolute -top-2 -left-2 p-2 text-white/80 hover:text-white transition-all duration-300 hover:scale-110 hover:rotate-12 group"
           aria-label="Voltar para início"
+          onMouseEnter={() => setHoveredButton('back')}
+          onMouseLeave={() => setHoveredButton(null)}
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className={`w-6 h-6 transition-all duration-300 ${hoveredButton === 'back' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
         </button>
         <div className="text-center mb-6">
           <div className="flex items-center justify-center mb-3">
-            <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-md">
-            <img 
+            <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-md hover:scale-110 hover:rotate-12 transition-all duration-500 hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] group cursor-pointer">
+              <img 
                 src="/Logo-Sereno3.png" 
                 alt="Sereno Logo" 
                 className="w-full h-full object-contain p-1"
@@ -94,40 +148,49 @@ const Register = () => {
               />
             </div>
           </div>
-          <h1 className="text-2xl font-semibold text-white mb-1">Sereno</h1>
-          <p className="text-white/60 text-sm">Crie sua conta e comece hoje</p>
+          <h1 className="text-2xl font-semibold text-white mb-1 hover:text-white/90 transition-colors duration-300">Sereno</h1>
+          <p className="text-white/60 text-sm hover:text-white/80 transition-colors duration-300">Crie sua conta e comece hoje</p>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
           <div className="mb-4">
-            <h2 className="text-xl font-light text-white mb-1">Criar Conta</h2>
-            <p className="text-white/60 text-sm">Leva menos de 2 minutos</p>
+            <h2 className="text-xl font-light text-white mb-1 group-hover:text-white/95 transition-colors duration-300">Criar Conta</h2>
+            <p className="text-white/60 text-sm group-hover:text-white/70 transition-colors duration-300">Leva menos de 2 minutos</p>
           </div>
 
-          {/* Seletor de Tipo */}
-          <div className="mb-4 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setRole('cliente')}
-              className={`py-2 rounded-lg border transition-all duration-200 text-sm ${
-                role === 'cliente'
-                  ? 'bg-white text-black border-white'
-                  : 'bg-transparent text-white/80 border-white/20 hover:border-white/30 hover:text-white'
-              }`}
-            >
-              Sou Cliente
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('psicologo')}
-              className={`py-2 rounded-lg border transition-all duration-200 text-sm ${
-                role === 'psicologo'
-                  ? 'bg-white text-black border-white'
-                  : 'bg-transparent text-white/80 border-white/20 hover:border-white/30 hover:text-white'
-              }`}
-            >
-              Sou Psicólogo(a)
-            </button>
+          {/* User Type Toggle */}
+          <div className="mb-4">
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <Sparkles className="w-3 h-3 text-white/40 animate-pulse" />
+              <span className="text-xs text-white/60">Tipo de usuário:</span>
+              <Sparkles className="w-3 h-3 text-white/40 animate-pulse" style={{ animationDelay: '0.5s' }} />
+            </div>
+            <div className="flex bg-white/10 rounded-lg p-1 border border-white/20 hover:border-white/30 transition-all duration-300 hover:bg-white/15">
+              <button
+                type="button"
+                onClick={() => setRole('cliente')}
+                className={`flex-1 flex items-center justify-center py-1.5 px-3 rounded-md transition-all duration-300 text-sm group ${
+                  role === 'cliente' 
+                    ? 'bg-white text-black shadow-lg scale-105 shadow-white/20' 
+                    : 'text-white/70 hover:text-white hover:bg-white/10 hover:scale-105'
+                }`}
+              >
+                <User className="w-3 h-3 mr-1.5 transition-all duration-300 group-hover:scale-110" />
+                Cliente
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('psicologo')}
+                className={`flex-1 flex items-center justify-center py-1.5 px-3 rounded-md transition-all duration-300 text-sm group ${
+                  role === 'psicologo' 
+                    ? 'bg-white text-black shadow-lg scale-105 shadow-white/20' 
+                    : 'text-white/70 hover:text-white hover:bg-white/10 hover:scale-105'
+                }`}
+              >
+                <Brain className="w-3 h-3 mr-1.5 transition-all duration-300 group-hover:scale-110" />
+                Psicólogo
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -143,6 +206,23 @@ const Register = () => {
                   onChange={handleInputChange}
                   className="w-full pl-9 pr-4 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-200 text-sm"
                   placeholder="Seu nome completo"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="username" className="block text-xs font-light text-white/80">Username</label>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  className="w-full pl-9 pr-4 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-200 text-sm"
+                  placeholder="seu_usuario"
                   required
                 />
               </div>
@@ -308,25 +388,50 @@ const Register = () => {
               </div>
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full py-2.5 px-4 bg-white text-black hover:bg-white/90 disabled:bg-white/60 font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed shadow-lg text-sm">
-              {isLoading ? 'Criando...' : 'Criar Conta'}
+            <button 
+              type="submit" 
+              disabled={isLoading} 
+              className="w-full py-2.5 px-4 bg-white text-black hover:bg-white/90 disabled:bg-white/60 font-medium rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(255,255,255,0.3)] disabled:scale-100 disabled:cursor-not-allowed shadow-lg text-sm group overflow-hidden relative"
+              onMouseEnter={() => setHoveredButton('submit')}
+              onMouseLeave={() => setHoveredButton(null)}
+            >
+              {/* Shimmer effect */}
+              <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${
+                hoveredButton === 'submit' && !isLoading ? 'translate-x-full' : ''
+              }`}></div>
+              
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin mr-2"></div>
+                  Criando...
+                </div>
+              ) : (
+                <span className="relative z-10">Criar Conta</span>
+              )}
             </button>
           </form>
 
           <div className="mt-4 text-center">
             <p className="text-white/70 text-sm">
               Já tem uma conta?{' '}
-              <button onClick={() => { window.location.hash = '#/login'; }} className="text-white hover:text-white/80 font-medium transition-colors">
+              <button 
+                onClick={() => navigate('/login')} 
+                className="text-white hover:text-white/80 font-medium transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] hover:scale-105 inline-block"
+              >
                 Fazer login
               </button>
             </p>
           </div>
         </div>
 
-        <div className="mt-6 text-center text-white/50 text-xs">
-          <p>Conecte-se, Entenda-se, <span className="text-white">Evolua.</span></p>
+        <div className="mt-6 text-center text-white/50 text-xs animate-fade-in" style={{ animationDelay: '0.5s' }}>
+          <p className="hover:text-white/70 transition-colors duration-300 cursor-default">
+            Conecte-se, Entenda-se, <span className="text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-300">Evolua.</span>
+          </p>
         </div>
       </div>
+
+
     </div>
   );
 };

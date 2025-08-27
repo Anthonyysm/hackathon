@@ -242,7 +242,7 @@ const Settings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
       {/* Header */}
       <div className="bg-white/10 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-2xl">
         <div className="flex items-center space-x-2 mb-6">
@@ -305,7 +305,7 @@ const Settings = () => {
                    value={profileSettings.username}
                    onChange={(e) => handleInputChange('profile', 'username', e.target.value.toLowerCase())}
                    placeholder="Digite seu username"
-                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-white focus:border-transparent transition-all"
                  />
                 <p className="text-white/50 text-xs mt-1">Este será seu identificador único na plataforma</p>
               </div>
@@ -318,7 +318,7 @@ const Settings = () => {
                   type="text"
                   value={profileSettings.displayName}
                   onChange={(e) => handleInputChange('profile', 'displayName', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-white focus:border-transparent transition-all"
                 />
               </div>
 
@@ -330,7 +330,7 @@ const Settings = () => {
                   value={profileSettings.bio}
                   onChange={(e) => handleInputChange('profile', 'bio', e.target.value)}
                   rows="3"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-white focus:border-transparent transition-all resize-none"
                 />
               </div>
 
@@ -343,7 +343,7 @@ const Settings = () => {
                     type="text"
                     value={profileSettings.location}
                     onChange={(e) => handleInputChange('profile', 'location', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-white focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -355,7 +355,7 @@ const Settings = () => {
                     type="url"
                     value={profileSettings.website}
                     onChange={(e) => handleInputChange('profile', 'website', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-white focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -367,7 +367,7 @@ const Settings = () => {
                 <select
                   value={profileSettings.language}
                   onChange={(e) => handleInputChange('profile', 'language', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white focus:border-transparent transition-all"
                 >
                   <option value="pt-BR">Português (Brasil)</option>
                   <option value="en-US">English (US)</option>
@@ -379,7 +379,7 @@ const Settings = () => {
                 <button
                   onClick={handleProfileSave}
                   disabled={saving}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                  className="px-6 py-3 bg-white hover:bg-gray-100 disabled:bg-gray-800 disabled:cursor-not-allowed text-black rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
                   {saving ? (
                     <>
@@ -434,7 +434,7 @@ const Settings = () => {
                 <button
                   onClick={handleNotificationSave}
                   disabled={saving}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                  className="px-6 py-3 bg-white hover:bg-gray-100 disabled:bg-gray-800 disabled:cursor-not-allowed text-black rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
                   {saving ? (
                     <>
@@ -466,7 +466,7 @@ const Settings = () => {
                 <select
                   value={privacySettings.profileVisibility}
                   onChange={(e) => handleInputChange('privacy', 'profileVisibility', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white focus:border-transparent transition-all"
                 >
                   <option value="public">Público</option>
                   <option value="friends">Apenas Amigos</option>
@@ -503,7 +503,7 @@ const Settings = () => {
                 <button
                   onClick={handlePrivacySave}
                   disabled={saving}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                  className="px-6 py-3 bg-white hover:bg-gray-100 disabled:bg-gray-800 disabled:cursor-not-allowed text-black rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
                   {saving ? (
                     <>
@@ -561,7 +561,7 @@ const Settings = () => {
                 <select
                   value={appearanceSettings.fontSize}
                   onChange={(e) => handleInputChange('appearance', 'fontSize', e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-white focus:border-transparent transition-all"
                 >
                   <option value="small">Pequeno</option>
                   <option value="medium">Médio</option>
@@ -594,7 +594,7 @@ const Settings = () => {
                 <button
                   onClick={handleAppearanceSave}
                   disabled={saving}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+                  className="px-6 py-3 bg-white hover:bg-gray-100 disabled:bg-gray-800 disabled:cursor-not-allowed text-black rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
                   {saving ? (
                     <>
@@ -613,7 +613,7 @@ const Settings = () => {
           </div>
         )}
       </div>
-    );
-  };
+  );
+};
 
 export default Settings;

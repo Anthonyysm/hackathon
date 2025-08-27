@@ -210,7 +210,9 @@ const CommunityGroup = () => {
           ? { 
               ...post, 
               liked: !post.liked, 
-              likes: post.liked ? post.likes - 1 : post.likes + 1 
+              likes: post.liked 
+                ? (Array.isArray(post.likes) ? post.likes.filter(id => id !== 'current-user') : [])
+                : (Array.isArray(post.likes) ? [...post.likes, 'current-user'] : ['current-user'])
             }
           : post
       )
@@ -221,7 +223,7 @@ const CommunityGroup = () => {
     const matchesSearch = post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          post.author.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterType === 'all' || 
-                         (filterType === 'popular' && post.likes > 10) ||
+                         (filterType === 'popular' && (Array.isArray(post.likes) ? post.likes.length : 0) > 10) ||
                          (filterType === 'recent' && post.timestamp > new Date(Date.now() - 1000 * 60 * 60 * 24));
     
     return matchesSearch && matchesFilter;
@@ -513,12 +515,12 @@ const CommunityGroup = () => {
                           }`}
                         >
                           <Heart className={`w-4 h-4 ${post.liked ? 'fill-current' : ''}`} />
-                          <span>{post.likes}</span>
+                          <span>{Array.isArray(post.likes) ? post.likes.length : 0}</span>
                         </button>
                         
                         <button className="flex items-center space-x-1 text-white/60 hover:text-white transition-colors">
                           <MessageCircle className="w-4 h-4" />
-                          <span>{post.comments}</span>
+                          <span>{post.commentCount || 0}</span>
                         </button>
                         
                         <button className="text-white/60 hover:text-white transition-colors">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, User, Send, Paperclip, Search, Filter, MoreVertical, Clock, Check, CheckCheck, ArrowLeft, Users, Hash } from 'lucide-react';
+import { MessageCircle, User, Send, Paperclip, Search, Filter, MoreVertical, Clock, Check, CheckCheck, ArrowLeft, Users, Hash, Plus, X } from 'lucide-react';
 import Card from './ui/Card';
 import Input from './ui/Input';
 
@@ -10,6 +10,14 @@ const LiveChat = () => {
   const [filterType, setFilterType] = useState('all');
   const [activeTab, setActiveTab] = useState('conversas'); // 'conversas', 'psicologos', 'grupos'
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [newGroupData, setNewGroupData] = useState({
+    name: '',
+    description: '',
+    category: 'saude-mental',
+    isPrivate: false,
+    maxMembers: 100
+  });
 
   const psychologists = [
     {
@@ -316,6 +324,54 @@ const LiveChat = () => {
     setSelectedChat(null);
   };
 
+  const handleCreateGroup = () => {
+    setShowCreateGroupModal(true);
+    setNewGroupData({
+      name: '',
+      description: '',
+      category: 'saude-mental',
+      isPrivate: false,
+      maxMembers: 100
+    });
+  };
+
+  const handleCloseCreateGroupModal = () => {
+    setShowCreateGroupModal(false);
+  };
+
+  const handleSaveGroup = () => {
+    if (!newGroupData.name.trim() || !newGroupData.description.trim()) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    // TODO: Implement group creation to Firebase
+    const newGroup = {
+      id: Date.now(), // Temporary ID
+      name: newGroupData.name,
+      description: newGroupData.description,
+      memberCount: 1, // Creator is first member
+      maxMembers: newGroupData.maxMembers,
+      isPrivate: newGroupData.isPrivate,
+      category: newGroupData.category,
+      createdAt: new Date(),
+      lastActivity: new Date(),
+      avatar: '👥', // Default avatar
+      onlineCount: 1,
+      isMember: true,
+      messages: []
+    };
+
+    // Add to groups array (in real app, this would go to Firebase)
+    groups.push(newGroup);
+    
+    console.log('Novo grupo criado:', newGroup);
+    handleCloseCreateGroupModal();
+    
+    // Optionally switch to the new group
+    handleGroupChat(newGroup);
+  };
+
   const getCurrentChatData = () => {
     if (selectedConversation) return selectedConversation;
     if (selectedPsychologist) return selectedPsychologist;
@@ -340,7 +396,7 @@ const LiveChat = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-black py-8 animation-initial animate-fade-in-up animation-delay-100">
       {/* Chat Options */}
       <Card variant="glass" padding="lg">
         <Card.Header>
@@ -480,6 +536,18 @@ const LiveChat = () => {
 
           {activeTab === 'grupos' && (
             <div className="space-y-3 max-h-96 overflow-y-auto">
+              {/* Create Group Button */}
+              <button
+                onClick={handleCreateGroup}
+                className="w-full p-4 rounded-xl border-2 border-dashed border-white/20 hover:border-white/40 hover:bg-white/5 transition-all duration-200 text-center group"
+              >
+                <div className="flex items-center justify-center space-x-2 text-white/70 group-hover:text-white">
+                  <Plus className="w-5 h-5" />
+                  <span className="font-medium">Crie Seu Grupo</span>
+                </div>
+                <p className="text-sm text-white/50 mt-1">Comece uma nova comunidade de apoio</p>
+              </button>
+
               {filteredGroups.map((group) => (
                 <button
                   key={group.id}
@@ -627,6 +695,114 @@ const LiveChat = () => {
             </div>
           </div>
         </Card>
+      )}
+
+      {/* Create Group Modal */}
+      {showCreateGroupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card variant="glass" padding="lg" className="w-full max-w-md">
+            <Card.Header>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-white">Criar Novo Grupo</h3>
+                <button
+                  onClick={handleCloseCreateGroupModal}
+                  className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            </Card.Header>
+            <Card.Content>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">
+                    Nome do Grupo *
+                  </label>
+                  <Input
+                    value={newGroupData.name}
+                    onChange={(e) => setNewGroupData({ ...newGroupData, name: e.target.value })}
+                    placeholder="Ex: Ansiedade & Bem-estar"
+                    variant="glass"
+                    size="sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">
+                    Descrição *
+                  </label>
+                  <textarea
+                    value={newGroupData.description}
+                    onChange={(e) => setNewGroupData({ ...newGroupData, description: e.target.value })}
+                    placeholder="Descreva o propósito do grupo"
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 resize-none"
+                    rows={3}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">
+                    Categoria
+                  </label>
+                  <select
+                    value={newGroupData.category}
+                    onChange={(e) => setNewGroupData({ ...newGroupData, category: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                  >
+                    <option value="saude-mental">Saúde Mental</option>
+                    <option value="bem-estar">Bem-estar</option>
+                    <option value="familia">Família</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">
+                    Número Máximo de Membros
+                  </label>
+                  <input
+                    type="number"
+                    value={newGroupData.maxMembers}
+                    onChange={(e) => setNewGroupData({ ...newGroupData, maxMembers: parseInt(e.target.value) || 100 })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                    placeholder="100"
+                    min="1"
+                    max="1000"
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="isPrivate"
+                    checked={newGroupData.isPrivate}
+                    onChange={(e) => setNewGroupData({ ...newGroupData, isPrivate: e.target.checked })}
+                    className="w-4 h-4 text-blue-400 focus:ring-blue-400 border-white/20 rounded"
+                  />
+                  <label htmlFor="isPrivate" className="text-sm text-white/70">
+                    Grupo Privado (apenas membros convidados podem entrar)
+                  </label>
+                </div>
+              </div>
+            </Card.Content>
+            <Card.Footer>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCloseCreateGroupModal}
+                  className="flex-1 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveGroup}
+                  disabled={!newGroupData.name.trim() || !newGroupData.description.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Criar Grupo
+                </button>
+              </div>
+            </Card.Footer>
+          </Card>
+        </div>
       )}
     </div>
   );
