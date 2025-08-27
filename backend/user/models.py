@@ -10,6 +10,7 @@ class CustomUser(AbstractUser):
 
     type = models.CharField(max_length=15, choices=USER_TYPE_CHOICES)
     name = models.CharField(max_length=120)
+    photo = models.ImageField(upload_to='profile/', blank=True, null=True)
     email = models.EmailField(unique=True)
     birth = models.DateField(verbose_name='Data de Nascimento', null=True)
     phone = models.CharField(max_length=12)
