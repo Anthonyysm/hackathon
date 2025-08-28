@@ -31,7 +31,7 @@ const HeroSection = React.memo(({ scrollToSection }) => {
 
   return (
     <section 
-      className="relative mt-20 pb-12 min-h-screen flex items-center z-20 "
+      className="relative pb-12 min-h-screen flex items-center z-20"
       aria-labelledby="hero-title"
       role="banner"
     >

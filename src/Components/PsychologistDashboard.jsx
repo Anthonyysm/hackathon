@@ -1,5 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MessagesPage from './PsychologistDashboard/MessagesPage';
+import PatientsPage from './PsychologistDashboard/PatientsPage';
+import PsychologistTour from './PsychologistDashboard/PsychologistTour';
+import ReportsPage from './PsychologistDashboard/ReportsPage';
+import SessionsPage from './PsychologistDashboard/SessionsPage';
+import { getDashboardStats, getPsychologistPatients, getPsychologistSessions } from '../services/psychologistService';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Users, 
@@ -20,12 +26,12 @@ import {
   ChevronRight,
   ChevronLeft
 } from 'lucide-react';
-import { getDashboardStats, getPsychologistPatients, getPsychologistSessions } from '../services/psychologistService';
-import PatientsPage from './PsychologistDashboard/PatientsPage';
-import SessionsPage from './PsychologistDashboard/SessionsPage';
-import ReportsPage from './PsychologistDashboard/ReportsPage';
-import MessagesPage from './PsychologistDashboard/MessagesPage';
-import PsychologistTour from './PsychologistDashboard/PsychologistTour';
+
+
+
+
+
+
 
 const PsychologistDashboard = () => {
   const navigate = useNavigate();

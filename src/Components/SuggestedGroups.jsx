@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Users, TrendingUp, Plus, Check, MessageCircle, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Confetti from './Confetti';
 
 const SuggestedGroups = ({ setActiveTab }) => {

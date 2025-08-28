@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {  useEffect, useState  } from 'react';
 import { CheckCircle, User, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import LightRays from './Components/LightRays';
 import { useAuth } from './contexts/AuthContext';
 
@@ -108,5 +108,3 @@ const Connected = () => {
 };
 
 export default Connected;
-
-

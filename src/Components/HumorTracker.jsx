@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { 
   Calendar, 
   BarChart3, 
@@ -20,8 +22,8 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, onSnapshot, deleteDoc } from 'firebase/firestore';
+
+
 
 const HumorTracker = () => {
   const [selectedMood, setSelectedMood] = useState('');

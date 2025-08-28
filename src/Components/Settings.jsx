@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { deleteUser } from 'firebase/auth';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -17,11 +22,11 @@ import {
   Trash2,
   LogOut
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { auth, db } from '../firebase';
-import { deleteUser } from 'firebase/auth';
-import { doc, deleteDoc } from 'firebase/firestore';
+
+
+
+
+
 
 const Settings = () => {
   const navigate = useNavigate();

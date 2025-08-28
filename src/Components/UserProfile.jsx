@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { doc, getDoc, updateDoc, collection, query, where, orderBy, getDocs, getDoc as getDocAlias, getDocs as getDocsAlias } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { profileImageService } from '../services/profileImageService';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   ArrowLeft, 
   Camera, 
@@ -16,10 +20,10 @@ import {
   User,
   Image as ImageIcon
 } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { profileImageService } from '../services/profileImageService';
-import { doc, getDoc, updateDoc, collection, query, where, orderBy, getDocs, getDoc as getDocAlias, getDocs as getDocsAlias } from 'firebase/firestore';
+
+
+
+
 
 const UserProfile = () => {
   const { userId } = useParams();

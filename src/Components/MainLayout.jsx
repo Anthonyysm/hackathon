@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import {  useState, useEffect  } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Header from './Header';
-import SuggestedGroups from './SuggestedGroups';
-import MoodTracker from './MoodTracker';
 import FloatingParticles from './FloatingParticles';
+import Header from './Header';
 import LightWaves from './LightWaves';
+import MoodTracker from './MoodTracker';
 import NotificationToast from './NotificationToast';
+import SuggestedGroups from './SuggestedGroups';
 import WelcomeTour from './WelcomeTour';
 import { useAuth } from '../contexts/AuthContext';
 

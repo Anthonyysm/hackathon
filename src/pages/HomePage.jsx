@@ -1,7 +1,7 @@
 import React from 'react';
-import WelcomeScreen from '../Components/WelcomeScreen';
 import PostCreationWithSync from '../Components/PostCreationWithSync';
 import SocialFeed from '../Components/SocialFeed';
+import WelcomeScreen from '../Components/WelcomeScreen';
 
 function HomePage() {
   return (

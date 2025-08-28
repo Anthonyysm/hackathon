@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { 
   Brain, 
   Frown, 
@@ -19,8 +21,8 @@ import {
   ArrowRight,
   User
 } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+
+
 
 const TherapySessions = () => {
   const [userData, setUserData] = useState(null);

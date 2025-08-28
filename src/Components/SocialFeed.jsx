@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import {  useState, useEffect  } from 'react';
 import { Heart, MoreVertical, User, Clock, Edit3, Trash2, Flag, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { usePosts } from '../hooks/usePosts';
-import { useAuth } from '../contexts/AuthContext';
 import CommentsThread from './CommentsThread';
+import { useAuth } from '../contexts/AuthContext';
+import { usePosts } from '../hooks/usePosts';
 
 const SocialFeed = () => {
   const navigate = useNavigate();

@@ -1,30 +1,51 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { UserPostsProvider } from '../contexts/UserPostsContext';
-
-// Componentes de páginas
 import App from '../App.jsx';
-import Login from '../Login.jsx';
-import Register from '../Register.jsx';
-import Connected from '../Connected.jsx';
-import CompleteProfile from '../CompleteProfile.jsx';
-import MainLayout from '../Components/MainLayout.jsx';
-import HomePage from '../pages/HomePage.jsx';
-import DiaryPage from '../pages/DiaryPage.jsx';
-import HumorTracker from '../Components/HumorTracker.jsx';
-import Profile from '../Components/Profile.jsx';
-import UserProfile from '../Components/UserProfile.jsx';
 import CommunityGroup from '../Components/CommunityGroup.jsx';
 import CommunityGroups from '../Components/CommunityGroups.jsx';
+import CompleteProfile from '../CompleteProfile.jsx';
+import Connected from '../Connected.jsx';
+import DiaryPage from '../pages/DiaryPage.jsx';
 import ExploreCommunities from '../Components/ExploreCommunities.jsx';
-import TherapySessions from '../Components/TherapySessions.jsx';
+import HomePage from '../pages/HomePage.jsx';
+import HumorTracker from '../Components/HumorTracker.jsx';
 import LiveChat from '../Components/LiveChat.jsx';
-import Settings from '../Components/Settings.jsx';
-import PostDetail from '../Components/PostDetail.jsx';
+import Login from '../Login.jsx';
+import MainLayout from '../Components/MainLayout.jsx';
 import Notifications from '../Components/Notifications.jsx';
-import WelcomeTour from '../Components/WelcomeTour.jsx';
+import PostDetail from '../Components/PostDetail.jsx';
+import Profile from '../Components/Profile.jsx';
 import PsychologistDashboard from '../Components/PsychologistDashboard.jsx';
+import Register from '../Register.jsx';
+import Settings from '../Components/Settings.jsx';
+import TherapySessions from '../Components/TherapySessions.jsx';
+import UserProfile from '../Components/UserProfile.jsx';
+import WelcomeTour from '../Components/WelcomeTour.jsx';
+import { UserPostsProvider } from '../contexts/UserPostsContext';
+import { useAuth } from '../contexts/AuthContext';
+
+// Componentes de páginas
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Componente para rotas protegidas
 const ProtectedRoute = ({ children }) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import {  useEffect, useState  } from 'react';
 import { X, Bell, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
 const NotificationToast = ({ 

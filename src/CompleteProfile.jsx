@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import {  useState, useEffect, useRef  } from 'react';
 import { Phone, Calendar, ArrowLeft, User, AtSign, Camera, Image, FileText, Upload, X, ArrowRight, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import LightRays from './Components/LightRays';
-import { useAuth } from './contexts/AuthContext';
+import { auth, db } from './firebase';
 import { notificationService } from './services/firebaseService';
+import { useAuth } from './contexts/AuthContext';
 
 const CompleteProfile = () => {
   const [formData, setFormData] = useState({
