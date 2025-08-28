@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Dashboard do Psicólogo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos específicos para o Dashboard do Psicólogo */
+        .monitoring-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .monitoring-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .chart-bar {
+            background: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .chart-bar:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scaleY(1.1);
+        }
+
+        /* Animações para os cards */
+        @keyframes cardSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .monitoring-card {
+            animation: cardSlideIn 0.6s ease-out;
+        }
+
+        .monitoring-card:nth-child(1) { animation-delay: 0.1s; }
+        .monitoring-card:nth-child(2) { animation-delay: 0.2s; }
+        .monitoring-card:nth-child(3) { animation-delay: 0.3s; }
+        .monitoring-card:nth-child(4) { animation-delay: 0.4s; }
+        .monitoring-card:nth-child(5) { animation-delay: 0.5s; }
+        .monitoring-card:nth-child(6) { animation-delay: 0.6s; }
+
+        /* Efeitos de partículas flutuantes */
+        .floating-particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <div class="min-h-screen bg-black relative overflow-hidden">
+        <!-- Partículas flutuantes de fundo -->
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="floating-particle" style="left: 10%; top: 20%; animation-delay: 0s;"></div>
+            <div class="floating-particle" style="left: 80%; top: 30%; animation-delay: 1s;"></div>
+            <div class="floating-particle" style="left: 50%; top: 60%; animation-delay: 2s;"></div>
+            <div class="floating-particle" style="left: 20%; top: 80%; animation-delay: 3s;"></div>
+            <div class="floating-particle" style="left: 90%; top: 70%; animation-delay: 4s;"></div>
+        </div>
+
+        <!-- Header -->
+        <header class="bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo e título -->
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
+                        <div class="w-6 h-6 bg-white rounded"></div>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-semibold text-white">MONITORAMENTO</h1>
+                        <p class="text-sm text-white/60">Dashboard do Psicólogo</p>
+                    </div>
+                </div>
+
+                <!-- Barra de pesquisa -->
+                <div class="flex-1 max-w-md mx-8">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar pacientes, sessões..."
+                            class="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-300"
+                        >
+                    </div>
+                </div>
+
+                <!-- Ações do usuário -->
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
+                        🔔
+                    </button>
+                    <button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
+                        ⚙️
+                    </button>
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                        👤
+                    </div>
+                    <button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
+                        🚪
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegação por abas -->
+        <nav class="bg-white/5 border-b border-white/10 px-6">
+            <div class="flex space-x-8">
+                <button class="flex items-center space-x-2 py-4 px-2 border-b-2 border-white text-white">
+                    <span>📊</span>
+                    <span class="text-sm font-medium">Visão Geral</span>
+                </button>
+                <button class="flex items-center space-x-2 py-4 px-2 border-b-2 border-transparent text-white/60 hover:text-white/80">
+                    <span>👥</span>
+                    <span class="text-sm font-medium">Pacientes</span>
+                </button>
+                <button class="flex items-center space-x-2 py-4 px-2 border-b-2 border-transparent text-white/60 hover:text-white/80">
+                    <span>📅</span>
+                    <span class="text-sm font-medium">Sessões</span>
+                </button>
+                <button class="flex items-center space-x-2 py-4 px-2 border-b-2 border-transparent text-white/60 hover:text-white/80">
+                    <span>📈</span>
+                    <span class="text-sm font-medium">Relatórios</span>
+                </button>
+                <button class="flex items-center space-x-2 py-4 px-2 border-b-2 border-transparent text-white/60 hover:text-white/80">
+                    <span>💬</span>
+                    <span class="text-sm font-medium">Mensagens</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Conteúdo principal -->
+        <main class="p-6">
+            <!-- Cards de monitoramento -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Card 1 -->
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white">👥</span>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-medium text-sm">Pacientes Ativos</h3>
+                                <p class="text-white/60 text-xs">Em tratamento</p>
+                            </div>
+                        </div>
+                                                 <div class="text-right text-white">
+                             <div class="text-lg font-semibold">24</div>
+                             <div class="text-xs text-white/70">+12%</div>
+                         </div>
+                    </div>
+                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 60%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 90%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 70%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white">📅</span>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-medium text-sm">Sessões Realizadas</h3>
+                                <p class="text-white/60 text-xs">Este mês</p>
+                            </div>
+                        </div>
+                                                 <div class="text-right text-white">
+                             <div class="text-lg font-semibold">156</div>
+                             <div class="text-xs text-white/70">+8%</div>
+                         </div>
+                    </div>
+                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 65%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 70%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 90%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white">📈</span>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-medium text-sm">Taxa de Sucesso</h3>
+                                <p class="text-white/60 text-xs">Tratamentos</p>
+                            </div>
+                        </div>
+                                                 <div class="text-right text-white">
+                             <div class="text-lg font-semibold">87%</div>
+                             <div class="text-xs text-white/70">+5%</div>
+                         </div>
+                    </div>
+                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 90%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 95%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 88%"></div>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white">⏰</span>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-medium text-sm">Tempo Médio</h3>
+                                <p class="text-white/60 text-xs">Por sessão</p>
+                            </div>
+                        </div>
+                                                 <div class="text-right text-white">
+                             <div class="text-lg font-semibold">45min</div>
+                             <div class="text-xs text-white/70">-3%</div>
+                         </div>
+                    </div>
+                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 70%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 60%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 65%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white">⭐</span>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-medium text-sm">Avaliações</h3>
+                                <p class="text-white/60 text-xs">Satisfação</p>
+                            </div>
+                        </div>
+                                                 <div class="text-right text-white">
+                             <div class="text-lg font-semibold">4.8</div>
+                             <div class="text-xs text-white/70">+0.2</div>
+                         </div>
+                    </div>
+                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 90%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 95%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 88%"></div>
+                    </div>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white">🚀</span>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-medium text-sm">Novos Pacientes</h3>
+                                <p class="text-white/60 text-xs">Esta semana</p>
+                            </div>
+                        </div>
+                                                 <div class="text-right text-white">
+                             <div class="text-lg font-semibold">8</div>
+                             <div class="text-xs text-white/70">+25%</div>
+                         </div>
+                    </div>
+                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 60%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 75%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 70%"></div>
+                        <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção inferior com pacientes e sessões -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Pacientes recentes -->
+                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white">Pacientes Recentes</h3>
+                        <button class="text-white/60 hover:text-white text-sm transition-colors duration-300">
+                            Ver todos
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                    👤
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-medium text-sm">Maria Silva</h4>
+                                    <p class="text-white/60 text-xs">Última sessão: 2 dias atrás</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs text-white/60 mb-1">Próxima: Amanhã</div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-white/20 rounded-full h-2">
+                                        <div class="h-2 rounded-full bg-white" style="width: 75%"></div>
+                                    </div>
+                                    <span class="text-xs text-white/60">75%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Próximas sessões -->
+                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white">Próximas Sessões</h3>
+                        <button class="flex items-center space-x-2 bg-white text-black px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/90 transition-all duration-300">
+                            ➕
+                            Nova
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer group">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                    📅
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-medium text-sm">Ana Costa</h4>
+                                    <p class="text-white/60 text-xs">Online • 50 min</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-semibold text-white">14:00</div>
+                                                         <div class="text-xs px-2 py-1 rounded-full bg-white/20 text-white">
+                             Confirmado
+                         </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
