@@ -289,6 +289,24 @@ export interface AppState {
   error: string | null;
 }
 
+export interface Friend {
+  uid: string;
+  displayName: string;
+  photoURL?: string;
+  lastSeen?: Date; // Adicione o campo lastSeen para status online/offline
+  // Adicione outros campos relevantes do perfil do amigo, se necessário
+}
+
+export interface FriendRequest {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderPhotoURL?: string;
+  recipientId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+}
+
 // Tipos para hooks personalizados
 export interface UsePostsReturn {
   posts: Post[];

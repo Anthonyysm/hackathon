@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosts } from '../hooks/usePosts';
-import { imageUploadService } from '../services/firebaseService';
 import { Image, Hash, Eye, EyeOff, Send, X, Trash2, Upload } from 'lucide-react';
 
 const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
@@ -12,54 +11,10 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
   const [visibility, setVisibility] = useState('public'); // public, private
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validar arquivo
-    const validation = imageUploadService.validateImageFile(file);
-    if (!validation.isValid) {
-      setError(validation.errors.join(', '));
-      return;
-    }
-
-    // Criar preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target.result);
-      setSelectedImage(file);
-      setError(''); // Limpar erros anteriores
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const uploadImage = async () => {
-    if (!selectedImage) return null;
-
-    setIsUploadingImage(true);
-    try {
-      const result = await imageUploadService.uploadPostImage(selectedImage, user.uid);
-      return result;
-    } catch (error) {
-      setError(`Erro ao fazer upload da imagem: ${error.message}`);
-      return null;
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
+  // const [selectedImage, setSelectedImage] = useState(null);
+  // const [imagePreview, setImagePreview] = useState(null);
+  // const [isUploadingImage, setIsUploadingImage] = useState(false);
+  // const fileInputRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,30 +28,16 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
     setError('');
 
     try {
-      let imageData = null;
-      
-      // Upload da imagem se houver
-      if (selectedImage) {
-        imageData = await uploadImage();
-        if (!imageData) {
-          setIsSubmitting(false);
-          return; // Erro já foi definido
-        }
-      }
-
       const postData = {
         content: content.trim(),
         tags: tags.trim() ? tags.trim().split(',').map(tag => tag.trim().replace('#', '')) : [],
         visibility: visibility,
         userId: user.uid,
         author: user.displayName || user.email || 'Usuário',
-        avatar: user.photoURL,
-        image: imageData ? {
-          url: imageData.url,
-          fileName: imageData.fileName,
-          size: imageData.size,
-          type: imageData.type
-        } : null
+        avatar: user.photoURL || (
+          user.displayName ? user.displayName[0].toUpperCase() : user.email[0].toUpperCase()
+        ),
+        image: null 
       };
 
       const success = await createPost(postData);
@@ -106,11 +47,8 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
         setContent('');
         setTags('');
         setVisibility('public');
-        setSelectedImage(null);
-        setImagePreview(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        // setSelectedImage(null); // This line is removed
+        // setImagePreview(null); // This line is removed
         
         // Chamar callback se fornecido
         if (onPostCreated) {
@@ -193,7 +131,7 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
         </div>
 
         {/* Image Preview */}
-        {imagePreview && (
+        {/* {imagePreview && (
           <div className="relative">
             <img
               src={imagePreview}
@@ -209,7 +147,7 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
               <X className="w-4 h-4" />
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Tags Input */}
         <div>
@@ -271,37 +209,37 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
         <div className="flex items-center justify-between pt-4">
           <div className="flex items-center space-x-4">
             {/* Image Upload Button */}
-            <button
+            {/* <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className={`p-2 rounded-full transition-all duration-200 ${
-                selectedImage 
-                  ? 'text-green-400 hover:text-green-300 hover:bg-green-400/10' 
-                  : 'text-white/50 hover:text-white hover:bg-white/10'
+                // selectedImage 
+                //   ? 'text-green-400 hover:text-green-300 hover:bg-green-400/10' 
+                //   : 'text-white/50 hover:text-white hover:bg-white/10'
               }`}
-              disabled={isSubmitting || isUploadingImage}
+              disabled={isSubmitting} // Changed from isUploadingImage to isSubmitting
               title="Adicionar imagem"
             >
-              {isUploadingImage ? (
+              {/* {isUploadingImage ? (
                 <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
               ) : selectedImage ? (
                 <Image className="w-5 h-5" />
               ) : (
                 <Upload className="w-5 h-5" />
-              )}
-            </button>
+              )} */}
+            {/* </button> */}
             
-            <input
+            {/* <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={handleImageSelect}
-              disabled={isSubmitting || isUploadingImage}
-            />
+              disabled={isSubmitting} // Changed from isUploadingImage to isSubmitting
+            /> */}
             
             {/* Remove Image Button */}
-            {selectedImage && (
+            {/* {selectedImage && ( // This block is removed
               <button
                 type="button"
                 onClick={removeImage}
@@ -311,7 +249,7 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
               >
                 <Trash2 className="w-5 h-5" />
               </button>
-            )}
+            )} */}
           </div>
 
           <div className="flex items-center space-x-3">
@@ -320,7 +258,7 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
                 type="button"
                 onClick={handleCancel}
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-                disabled={isSubmitting || isUploadingImage}
+                disabled={isSubmitting} // Changed from isUploadingImage to isSubmitting
               >
                 Cancelar
               </button>
@@ -328,13 +266,13 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
             
             <button
               type="submit"
-              disabled={isSubmitting || isUploadingImage || !content.trim()}
+              disabled={isSubmitting || !content.trim()} // Changed from isUploadingImage to isSubmitting
               className="px-6 py-2 bg-white text-black rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] disabled:bg-white/30 disabled:scale-100 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              {isSubmitting || isUploadingImage ? (
+              {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                  <span>{isUploadingImage ? 'Enviando imagem...' : 'Postando...'}</span>
+                  <span>{isSubmitting ? 'Postando...' : 'Postar'}</span>
                 </>
               ) : (
                 <>

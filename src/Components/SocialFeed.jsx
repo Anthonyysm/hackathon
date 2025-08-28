@@ -119,10 +119,17 @@ const SocialFeed = () => {
         <article key={post.id} className="bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all">
           {/* Post Header */}
           <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                {post.isAnonymous ? '?' : (post.author?.charAt(0) || 'U')}
-              </div>
+            <div 
+              className="flex items-center space-x-3 cursor-pointer"
+              onClick={() => !post.isAnonymous && navigate(`/profile/${post.userId}`)}
+            >
+              {post.avatar && post.avatar.startsWith && (post.avatar.startsWith('http://') || post.avatar.startsWith('https://')) ? (
+                <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-black font-bold text-lg">
+                  {post.avatar || (post.author ? post.author.charAt(0).toUpperCase() : 'U')}
+                </div>
+              )}
               <div>
                 <div className="flex items-center space-x-2">
                   <h3 className="text-white font-semibold">

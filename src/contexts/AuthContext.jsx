@@ -36,13 +36,24 @@ export const AuthProvider = ({ children }) => {
             ...currentUser,
             role: userData.role || 'cliente',
             displayName: userData.displayName || currentUser.displayName,
+            photoURL: userData.photoURL || currentUser.photoURL, // Adiciona photoURL
             profileData: userData,
             idToken
           });
 
-          const hasSeenTour = localStorage.getItem(`tour-${currentUser.uid}`);
-          if (!hasSeenTour) {
+          // Verificar se o usuário já viu o tour (verificar tanto localStorage quanto Firestore)
+          const hasSeenTourLocal = localStorage.getItem(`tour-${currentUser.uid}`);
+          const hasSeenTourFirestore = userData.hasSeenTour;
+          
+          // Só é primeira vez se não viu o tour em nenhum lugar
+          if (!hasSeenTourLocal && !hasSeenTourFirestore) {
             setIsFirstTime(true);
+          } else {
+            setIsFirstTime(false);
+            // Se viu no Firestore mas não no localStorage, sincronizar
+            if (hasSeenTourFirestore && !hasSeenTourLocal) {
+              localStorage.setItem(`tour-${currentUser.uid}`, 'true');
+            }
           }
         } else {
           setUser(null);
@@ -63,17 +74,24 @@ export const AuthProvider = ({ children }) => {
 
   const markTourAsSeen = async () => {
     if (user) {
+      // Marcar no localStorage
       localStorage.setItem(`tour-${user.uid}`, 'true');
+      
+      // Atualizar estado local
       setIsFirstTime(false);
       
       // Salvar no Firestore também
       try {
         const userRef = doc(db, 'users', user.uid);
         await setDoc(userRef, { 
-          hasSeenTour: true 
+          hasSeenTour: true,
+          tourSeenAt: new Date().toISOString()
         }, { merge: true });
+        
+        console.log('Tour marcado como visto com sucesso');
       } catch (error) {
         console.error('Erro ao salvar status do tour:', error);
+        // Mesmo com erro, manter o estado local atualizado
       }
     }
   };

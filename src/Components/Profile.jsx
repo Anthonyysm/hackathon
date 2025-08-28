@@ -607,10 +607,12 @@ const Profile = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                      {post.avatar ? (
-                        <img src={post.avatar} alt={post.author} className="w-10 h-10 rounded-full" />
+                      {post.avatar && (post.avatar.startsWith('http://') || post.avatar.startsWith('https://')) ? (
+                        <img src={post.avatar} alt={post.author} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
-                        <User className="w-5 h-5 text-white/70" />
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-bold text-md">
+                          {post.author ? post.author.charAt(0).toUpperCase() : 'U'}
+                        </div>
                       )}
                     </div>
                     

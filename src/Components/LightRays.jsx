@@ -61,6 +61,41 @@ const LightRays = ({
   const cleanupFunctionRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const observerRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar se é mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Configurações otimizadas para mobile
+  const mobileConfig = {
+    raysSpeed: raysSpeed * 0.6,
+    lightSpread: lightSpread * 1.2,
+    rayLength: rayLength * 0.9,
+    followMouse: false,
+    mouseInfluence: 0.0,
+    noiseAmount: noiseAmount * 0.5,
+    distortion: distortion * 0.5,
+  };
+
+  // Usar configurações mobile se for mobile
+  const config = isMobile ? mobileConfig : {
+    raysSpeed,
+    lightSpread,
+    rayLength,
+    followMouse,
+    mouseInfluence,
+    noiseAmount,
+    distortion,
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -223,16 +258,16 @@ void main() {
         rayDir: { value: [0, 1] },
 
         raysColor: { value: hexToRgb(raysColor) },
-        raysSpeed: { value: raysSpeed },
-        lightSpread: { value: lightSpread },
-        rayLength: { value: rayLength },
+        raysSpeed: { value: config.raysSpeed },
+        lightSpread: { value: config.lightSpread },
+        rayLength: { value: config.rayLength },
         pulsating: { value: pulsating ? 1.0 : 0.0 },
         fadeDistance: { value: fadeDistance },
         saturation: { value: saturation },
         mousePos: { value: [0.5, 0.5] },
-        mouseInfluence: { value: mouseInfluence },
-        noiseAmount: { value: noiseAmount },
-        distortion: { value: distortion },
+        mouseInfluence: { value: config.mouseInfluence },
+        noiseAmount: { value: config.noiseAmount },
+        distortion: { value: config.distortion },
       };
       uniformsRef.current = uniforms;
 
@@ -338,16 +373,16 @@ void main() {
     isVisible,
     raysOrigin,
     raysColor,
-    raysSpeed,
-    lightSpread,
-    rayLength,
+    config.raysSpeed,
+    config.lightSpread,
+    config.rayLength,
     pulsating,
     fadeDistance,
     saturation,
-    followMouse,
-    mouseInfluence,
-    noiseAmount,
-    distortion,
+    config.followMouse,
+    config.mouseInfluence,
+    config.noiseAmount,
+    config.distortion,
   ]);
 
   useEffect(() => {
@@ -358,15 +393,15 @@ void main() {
     const renderer = rendererRef.current;
 
     u.raysColor.value = hexToRgb(raysColor);
-    u.raysSpeed.value = raysSpeed;
-    u.lightSpread.value = lightSpread;
-    u.rayLength.value = rayLength;
+    u.raysSpeed.value = config.raysSpeed;
+    u.lightSpread.value = config.lightSpread;
+    u.rayLength.value = config.rayLength;
     u.pulsating.value = pulsating ? 1.0 : 0.0;
     u.fadeDistance.value = fadeDistance;
     u.saturation.value = saturation;
-    u.mouseInfluence.value = mouseInfluence;
-    u.noiseAmount.value = noiseAmount;
-    u.distortion.value = distortion;
+    u.mouseInfluence.value = config.mouseInfluence;
+    u.noiseAmount.value = config.noiseAmount;
+    u.distortion.value = config.distortion;
 
     const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
     const dpr = renderer.dpr;
@@ -375,16 +410,16 @@ void main() {
     u.rayDir.value = dir;
   }, [
     raysColor,
-    raysSpeed,
-    lightSpread,
+    config.raysSpeed,
+    config.lightSpread,
     raysOrigin,
-    rayLength,
+    config.rayLength,
     pulsating,
     fadeDistance,
     saturation,
-    mouseInfluence,
-    noiseAmount,
-    distortion,
+    config.mouseInfluence,
+    config.noiseAmount,
+    config.distortion,
   ]);
 
   useEffect(() => {
@@ -396,11 +431,11 @@ void main() {
       mouseRef.current = { x, y };
     };
 
-    if (followMouse) {
+    if (config.followMouse) {
       window.addEventListener("mousemove", handleMouseMove);
       return () => window.removeEventListener("mousemove", handleMouseMove);
     }
-  }, [followMouse]);
+  }, [config.followMouse]);
 
   return (
     <div

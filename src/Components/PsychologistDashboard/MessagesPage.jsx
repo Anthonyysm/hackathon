@@ -1,4 +1,8 @@
 import {  useState, useEffect  } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import Card from '../ui/Card';
+import Input from '../ui/Input';
+import firebaseService from '../../services/firebaseService';
 import { 
   MessageCircle, 
   Search, 
@@ -20,13 +24,16 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  Plus
+  Plus,
+  Calendar
 } from 'lucide-react';
 import { getPsychologistMessages, createMessage, markMessageAsRead } from '../../services/psychologistService';
 import { useAuth } from '../../contexts/AuthContext';
 
 const MessagesPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { roomCode: urlRoomCode } = useParams();
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,15 +44,16 @@ const MessagesPage = () => {
   const [expandedMessage, setExpandedMessage] = useState(null);
   const [newMessage, setNewMessage] = useState({
     recipientId: '',
-    recipientName: '',
-    subject: '',
     content: '',
-    type: 'text'
   });
+  const [showJoinChatModal, setShowJoinChatModal] = useState(false);
+  const [joinChatRoomCode, setJoinChatRoomCode] = useState('');
+  const [sessionRequests, setSessionRequests] = useState([]);
 
-  // Carregar mensagens
+  // Carregar mensagens e solicitações de sessão
   useEffect(() => {
     loadMessages();
+    loadSessionRequests();
   }, [user?.uid]);
 
   // Filtrar mensagens
@@ -85,6 +93,70 @@ const MessagesPage = () => {
     }
   };
 
+  const loadSessionRequests = async () => {
+    if (!user?.uid) return;
+
+    try {
+      const result = await firebaseService.therapyService.getSessionRequests(user.uid, 'psychologist');
+      if (result) {
+        setSessionRequests(result.filter(req => req.status === 'pending'));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar solicitações de sessão:', error);
+    }
+  };
+
+  const handleConfirmSession = async (requestId, clientId, clientName, psychologistId, psychologistName, date, time, sessionType, notes) => {
+    try {
+      await firebaseService.therapyService.updateSessionRequestStatus(requestId, 'confirmed');
+      await firebaseService.therapyService.createTherapySession({
+        clientId,
+        clientName,
+        psychologistId,
+        psychologistName,
+        date,
+        time,
+        sessionType,
+        notes,
+        status: 'confirmed'
+      });
+      // Notify user
+      await firebaseService.notificationService.createNotification({
+        recipientId: clientId,
+        senderId: psychologistId,
+        senderName: psychologistName,
+        type: 'session_update',
+        title: 'Sessão Confirmada!',
+        message: `Sua sessão com ${psychologistName} em ${new Date(date).toLocaleDateString('pt-BR')} às ${time} foi confirmada.`,
+        actionUrl: '/home/sessions'
+      });
+      loadSessionRequests();
+    } catch (error) {
+      console.error('Erro ao confirmar sessão:', error);
+      alert('Erro ao confirmar sessão. Tente novamente.');
+    }
+  };
+
+  const handleRejectSession = async (requestId, clientId, clientName, psychologistName, date, time) => {
+    try {
+      await firebaseService.therapyService.updateSessionRequestStatus(requestId, 'rejected');
+      // Notify user
+      await firebaseService.notificationService.createNotification({
+        recipientId: clientId,
+        senderId: user.uid,
+        senderName: psychologistName,
+        type: 'session_update',
+        title: 'Sessão Rejeitada',
+        message: `Sua solicitação de sessão com ${psychologistName} em ${new Date(date).toLocaleDateString('pt-BR')} às ${time} foi rejeitada. Por favor, agende outro horário.`,
+        actionUrl: '/home/sessions'
+      });
+      loadSessionRequests();
+    } catch (error) {
+      console.error('Erro ao rejeitar sessão:', error);
+      alert('Erro ao rejeitar sessão. Tente novamente.');
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
@@ -102,12 +174,13 @@ const MessagesPage = () => {
         setShowCompose(false);
         setNewMessage({
           recipientId: '',
-          recipientName: '',
-          subject: '',
           content: '',
-          type: 'text'
         });
         loadMessages();
+        // Navigate to the new chat room after creating a message
+        if (messageData.recipientId) {
+          navigate(`/home/chat/${messageData.recipientId}`);
+        }
       }
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
@@ -182,6 +255,13 @@ const MessagesPage = () => {
     }
   };
 
+  const handleJoinChat = () => {
+    if (!joinChatRoomCode.trim()) return;
+    navigate(`/home/chat/${joinChatRoomCode.trim()}`);
+    setShowJoinChatModal(false);
+    setJoinChatRoomCode('');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -198,13 +278,22 @@ const MessagesPage = () => {
           <h1 className="text-2xl font-bold text-white">Mensagens</h1>
           <p className="text-white/60">Gerencie suas comunicações com pacientes e colegas</p>
         </div>
-        <button
-          onClick={() => setShowCompose(true)}
-          className="flex items-center space-x-2 bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-white/90 transition-all duration-300"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Mensagem
-        </button>
+        <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowCompose(true)}
+                  className="flex items-center space-x-2 bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-white/90 transition-all duration-300"
+                >
+                  <Plus className="w-4 h-4" />
+                  Criar Novo Chat
+                </button>
+                <button
+                  onClick={() => setShowJoinChatModal(true)}
+                  className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-all duration-300"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Entrar em um Chat
+                </button>
+              </div>
       </div>
 
       {/* Filtros e busca */}
@@ -292,6 +381,64 @@ const MessagesPage = () => {
 
       {/* Lista de mensagens */}
       <div className="space-y-4">
+        {/* Session Requests */}
+        {sessionRequests.length > 0 && (
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 mb-4">
+            <h3 className="text-xl font-semibold text-white mb-4">Solicitações de Sessão Pendentes</h3>
+            <div className="space-y-4">
+              {sessionRequests.map((request) => (
+                <div key={request.id} className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="w-5 h-5 text-blue-400" />
+                      <div>
+                        <p className="font-medium text-white">Solicitação de Sessão de {request.sessionType === 'individual' ? 'Individual' : request.sessionType === 'couple' ? 'Casal' : request.sessionType === 'family' ? 'Familiar' : 'Grupo'}</p>
+                        <p className="text-white/70 text-sm">Cliente: {request.clientName}</p>
+                        <p className="text-white/70 text-sm">Data: {new Date(request.date).toLocaleDateString('pt-BR')} às {request.time}</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">Pendente</span>
+                  </div>
+                  {request.notes && (
+                    <p className="text-white/60 text-sm mt-2">Obs: {request.notes}</p>
+                  )}
+                  <div className="flex space-x-3 mt-4">
+                    <button
+                      onClick={() => handleConfirmSession(
+                        request.id,
+                        request.clientId,
+                        request.clientName,
+                        request.psychologistId,
+                        request.psychologistName,
+                        request.date,
+                        request.time,
+                        request.sessionType,
+                        request.notes
+                      )}
+                      className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors duration-300"
+                    >
+                      Confirmar
+                    </button>
+                    <button
+                      onClick={() => handleRejectSession(
+                        request.id,
+                        request.clientId,
+                        request.clientName,
+                        request.psychologistName,
+                        request.date,
+                        request.time
+                      )}
+                      className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-300"
+                    >
+                      Recusar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {filteredMessages.map((message) => (
           <div
             key={message.id}
@@ -403,7 +550,7 @@ const MessagesPage = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-900 border border-white/20 rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white">Nova Mensagem</h2>
+              <h2 className="text-xl font-semibold text-white">Criar Novo Chat</h2>
               <button
                 onClick={() => setShowCompose(false)}
                 className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors duration-200"
@@ -413,50 +560,20 @@ const MessagesPage = () => {
             </div>
             
             <form onSubmit={handleSendMessage} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Tipo de Mensagem
-                  </label>
-                  <select
-                    value={newMessage.type}
-                    onChange={(e) => setNewMessage({...newMessage, type: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-300"
-                  >
-                    <option value="text">Texto</option>
-                    <option value="phone">Chamada</option>
-                    <option value="video">Vídeo</option>
-                    <option value="email">Email</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Nome do Destinatário
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newMessage.recipientName}
-                    onChange={(e) => setNewMessage({...newMessage, recipientName: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-300"
-                    placeholder="Nome do destinatário"
-                  />
-                </div>
-              </div>
-              
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
-                  Assunto
+                  ID do Destinatário (Paciente)
                 </label>
                 <input
                   type="text"
-                  value={newMessage.subject}
-                  onChange={(e) => setNewMessage({...newMessage, subject: e.target.value})}
+                  required
+                  value={newMessage.recipientId}
+                  onChange={(e) => setNewMessage({...newMessage, recipientId: e.target.value})}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-300"
-                  placeholder="Assunto da mensagem (opcional)"
+                  placeholder="ID do paciente"
                 />
               </div>
+              
               
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
@@ -490,6 +607,53 @@ const MessagesPage = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Modal para Entrar em um Chat */}
+      {showJoinChatModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card variant="glass" padding="lg" className="w-full max-w-md mx-4">
+            <Card.Header>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="w-6 h-6 text-gray-400" />
+                  <h2 className="text-xl font-semibold text-white">Entrar em um Chat</h2>
+                </div>
+                <button
+                  onClick={() => setShowJoinChatModal(false)}
+                  className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors duration-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </Card.Header>
+            <Card.Content>
+              <div className="text-center py-6">
+                <MessageCircle className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white/70 mb-2">Digite um código de sala para começar</h3>
+                <p className="text-white/50 mb-4">Ou use a URL diretamente: /home/chat/nomeddasala</p>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="text"
+                    placeholder="Digite o código da sala (ex: sala1208)"
+                    value={joinChatRoomCode}
+                    onChange={(e) => setJoinChatRoomCode(e.target.value)}
+                    variant="glass"
+                    size="sm"
+                    className="flex-1"
+                  />
+                  <button
+                    onClick={handleJoinChat}
+                    disabled={!joinChatRoomCode.trim()}
+                    className="px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-white/90 transition-colors disabled:opacity-50"
+                  >
+                    Entrar
+                  </button>
+                </div>
+              </div>
+            </Card.Content>
+          </Card>
         </div>
       )}
     </div>

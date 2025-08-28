@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Search, Home, MessageCircle, Calendar, BarChart3, Settings, Menu, X, Bell, BookOpen, HelpCircle, User, LogOut, ChevronRight } from 'lucide-react';
+import { Search, Home, MessageCircle, Calendar, BarChart3, Settings, Menu, X, Bell, BookOpen, HelpCircle, User, LogOut, ChevronRight, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
@@ -38,6 +38,7 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
       { name: 'Diário', tab: 'diary', icon: BookOpen, path: '/home/diary' },
       { name: 'Humor', tab: 'humor', icon: BarChart3, path: '/home/humor' },
       { name: 'Grupos', tab: 'groups', icon: Calendar, path: '/home/groups' },
+      { name: 'Amigos', tab: 'friends', icon: Users, path: '/home/friends' }, // New Friends tab
       { name: 'Notificações', tab: 'notifications', icon: Bell, path: '/home/notifications' },
       { name: 'Configurações', tab: 'settings', icon: Settings, path: '/home/settings' },
       { name: 'Meu Perfil', tab: 'profile', icon: User, path: '/home/profile' },
@@ -272,7 +273,13 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
                 >
-                  <User className="w-5 h-5" aria-hidden="true" />
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt={user.displayName || 'Usuário'} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black font-bold text-sm">
+                      {user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : 'U')}
+                    </div>
+                  )}
                   <span className="text-sm font-light">
                     {user.displayName || 'Usuário'}
                   </span>
@@ -373,9 +380,13 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
               {user && (
                 <div className="p-4 border-b border-white/20 flex-shrink-0">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || 'Usuário'} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-bold text-lg">
+                        {user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : 'U')}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="text-white font-medium truncate text-sm">
                         {user.displayName || 'Usuário'}

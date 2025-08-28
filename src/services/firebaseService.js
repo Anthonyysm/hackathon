@@ -42,20 +42,17 @@ export const userService = {
   // Buscar perfil de usuário
   async getUserProfile(userId) {
     try {
-      // Tenta usar Firebase primeiro
       const userRef = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
       
       if (userSnap.exists()) {
         return { id: userSnap.id, ...userSnap.data() };
       } else {
-        return null;
+        throw new Error('Perfil do usuário não encontrado no Firebase.');
       }
     } catch (error) {
-      console.warn('Firebase não disponível, usando dados mockados:', error);
-      // Retorna dados mockados se Firebase falhar
-      const mockUser = mockUsers.find(user => user.id === userId);
-      return mockUser || null;
+      console.error('Erro ao buscar perfil do usuário:', error);
+      throw error;
     }
   },
 
@@ -96,7 +93,6 @@ export const userService = {
   // Buscar usuários por tipo (psicólogos, clientes)
   async getUsersByRole(role) {
     try {
-      // Tenta usar Firebase primeiro
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('role', '==', role));
       const querySnapshot = await getDocs(q);
@@ -106,9 +102,8 @@ export const userService = {
         ...doc.data()
       }));
     } catch (error) {
-      console.warn('Firebase não disponível, usando dados mockados:', error);
-      // Retorna dados mockados se Firebase falhar
-      return mockUsers.filter(user => user.role === role);
+      console.error('Erro ao buscar usuários por função:', error);
+      throw error;
     }
   }
 };
@@ -1073,6 +1068,88 @@ export const therapyService = {
       console.error('Erro ao atualizar status da sessão:', error);
       throw error;
     }
+  },
+
+  // Criar uma solicitação de sessão com status 'pending'
+  async createSessionRequest(sessionRequestData) {
+    try {
+      const sessionRequestsRef = collection(db, 'sessionRequests');
+      const docRef = await addDoc(sessionRequestsRef, {
+        ...sessionRequestData,
+        createdAt: serverTimestamp(),
+        status: 'pending', // Status inicial da solicitação
+        updatedAt: serverTimestamp()
+      });
+      return { success: true, requestId: docRef.id };
+    } catch (error) {
+      console.error('Erro ao criar solicitação de sessão:', error);
+      throw error;
+    }
+  },
+
+  // Buscar solicitações de sessão para um psicólogo ou cliente
+  async getSessionRequests(userId, role = 'client') {
+    try {
+      const sessionRequestsRef = collection(db, 'sessionRequests');
+      let q;
+
+      if (role === 'client') {
+        q = query(sessionRequestsRef, where('clientId', '==', userId), orderBy('createdAt', 'desc'));
+      } else if (role === 'psychologist') {
+        q = query(sessionRequestsRef, where('psychologistId', '==', userId), orderBy('createdAt', 'desc'));
+      } else {
+        throw new Error('Função getSessionRequests: role inválido');
+      }
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Erro ao buscar solicitações de sessão:', error);
+      throw error;
+    }
+  },
+
+  // Atualizar o status de uma solicitação de sessão (confirmar/rejeitar)
+  async updateSessionRequestStatus(requestId, status, updates = {}) {
+    try {
+      const requestRef = doc(db, 'sessionRequests', requestId);
+      await updateDoc(requestRef, {
+        status,
+        ...updates,
+        updatedAt: serverTimestamp()
+      });
+
+      // Se a solicitação for confirmada ou rejeitada, registrar no histórico do psicólogo
+      if (status === 'confirmed' || status === 'rejected') {
+        const requestDoc = await getDoc(requestRef);
+        if (requestDoc.exists()) {
+          const requestData = requestDoc.data();
+          const psychologistId = requestData.psychologistId;
+          const psychologistRef = doc(db, 'PsychologistAccount', psychologistId);
+          
+          await updateDoc(psychologistRef, {
+            sessionHistory: arrayUnion({
+              id: requestId,
+              clientId: requestData.clientId,
+              clientName: requestData.clientName,
+              date: requestData.date,
+              time: requestData.time,
+              sessionType: requestData.sessionType,
+              status: status,
+              notes: requestData.notes || '',
+              processedAt: serverTimestamp()
+            })
+          });
+        }
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao atualizar status da solicitação:', error);
+      throw error;
+    }
   }
 };
 
@@ -1358,6 +1435,236 @@ export const firebaseUtils = {
     if (diffInDays < 7) return `${diffInDays}d atrás`;
     
     return this.formatDate(dateObj, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+};
+
+// ===== SERVIÇOS DE AMIZADE =====
+
+export const friendService = {
+  async sendFriendRequest(senderId, senderName, senderPhotoURL, recipientId) {
+    if (senderId === recipientId) {
+      throw new Error("Não é possível enviar solicitação de amizade para si mesmo.");
+    }
+
+    const friendRequestsRef = collection(db, 'friendRequests');
+    const q = query(
+      friendRequestsRef,
+      where('senderId', '==', senderId),
+      where('recipientId', '==', recipientId),
+      where('status', '==', 'pending')
+    );
+    const existingRequests = await getDocs(q);
+
+    if (!existingRequests.empty) {
+      throw new Error("Você já enviou uma solicitação de amizade para este usuário.");
+    }
+
+    const reverseQ = query(
+      friendRequestsRef,
+      where('senderId', '==', recipientId),
+      where('recipientId', '==', senderId),
+      where('status', '==', 'pending')
+    );
+    const reverseRequests = await getDocs(reverseQ);
+
+    if (!reverseRequests.empty) {
+      throw new Error("Este usuário já te enviou uma solicitação de amizade. Verifique suas solicitações.");
+    }
+
+    try {
+      const docRef = await addDoc(friendRequestsRef, {
+        senderId,
+        senderName,
+        senderPhotoURL: senderPhotoURL || null,
+        recipientId,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      
+      // Opcional: Criar uma notificação para o destinatário
+      await notificationService.createNotification({
+        type: 'friend_request',
+        recipientId,
+        senderId,
+        senderName,
+        message: `${senderName} enviou uma solicitação de amizade.`, // Mensagem mais descritiva
+        actionUrl: '/friends?tab=requests' // Link para a tela de solicitações
+      });
+
+      return { success: true, requestId: docRef.id };
+    } catch (error) {
+      console.error('Erro ao enviar solicitação de amizade:', error);
+      throw error;
+    }
+  },
+
+  async acceptFriendRequest(requestId, currentUserId) {
+    const requestRef = doc(db, 'friendRequests', requestId);
+    const requestDoc = await getDoc(requestRef);
+
+    if (!requestDoc.exists()) {
+      throw new Error("Solicitação de amizade não encontrada.");
+    }
+
+    const requestData = requestDoc.data();
+    if (requestData.recipientId !== currentUserId) {
+      throw new Error("Você não tem permissão para aceitar esta solicitação.");
+    }
+    if (requestData.status !== 'pending') {
+      throw new Error("Esta solicitação não está mais pendente.");
+    }
+
+    const batch = writeBatch(db);
+
+    // 1. Atualizar status da solicitação para 'accepted'
+    batch.update(requestRef, {
+      status: 'accepted',
+      updatedAt: serverTimestamp()
+    });
+
+    // 2. Adicionar usuários como amigos um do outro (no perfil de ambos)
+    const senderProfileRef = doc(db, 'users', requestData.senderId);
+    const recipientProfileRef = doc(db, 'users', requestData.recipientId);
+
+    batch.update(senderProfileRef, {
+      friends: arrayUnion(requestData.recipientId)
+    });
+    batch.update(recipientProfileRef, {
+      friends: arrayUnion(requestData.senderId)
+    });
+
+    try {
+      await batch.commit();
+
+      // Opcional: Criar notificação para o remetente
+      await notificationService.createNotification({
+        type: 'friend_accepted',
+        recipientId: requestData.senderId,
+        senderId: currentUserId,
+        senderName: (await userService.getUserProfile(currentUserId))?.displayName || 'Um usuário',
+        message: `${(await userService.getUserProfile(currentUserId))?.displayName || 'Um usuário'} aceitou sua solicitação de amizade.`, // Mensagem mais descritiva
+        actionUrl: `/user-profile/${currentUserId}`
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao aceitar solicitação de amizade:', error);
+      throw error;
+    }
+  },
+
+  async rejectFriendRequest(requestId, currentUserId) {
+    const requestRef = doc(db, 'friendRequests', requestId);
+    const requestDoc = await getDoc(requestRef);
+
+    if (!requestDoc.exists()) {
+      throw new Error("Solicitação de amizade não encontrada.");
+    }
+
+    const requestData = requestDoc.data();
+    if (requestData.recipientId !== currentUserId) {
+      throw new Error("Você não tem permissão para rejeitar esta solicitação.");
+    }
+    if (requestData.status !== 'pending') {
+      throw new Error("Esta solicitação não está mais pendente.");
+    }
+
+    try {
+      await updateDoc(requestRef, {
+        status: 'rejected',
+        updatedAt: serverTimestamp()
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao rejeitar solicitação de amizade:', error);
+      throw error;
+    }
+  },
+
+  async getPendingFriendRequests(userId) {
+    try {
+      const friendRequestsRef = collection(db, 'friendRequests');
+      const q = query(
+        friendRequestsRef,
+        where('recipientId', '==', userId),
+        where('status', '==', 'pending'),
+        orderBy('createdAt', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Erro ao buscar solicitações de amizade pendentes:', error);
+      return [];
+    }
+  },
+
+  async getFriends(userId) {
+    try {
+      const userProfile = await userService.getUserProfile(userId);
+      if (!userProfile || !userProfile.friends || userProfile.friends.length === 0) {
+        return [];
+      }
+
+      const friendUids = userProfile.friends;
+      const friendsData = [];
+
+      for (const friendUid of friendUids) {
+        const friendProfile = await userService.getUserProfile(friendUid);
+        if (friendProfile) {
+          friendsData.push({
+            uid: friendProfile.uid,
+            displayName: friendProfile.displayName || 'Usuário Sereno',
+            photoURL: friendProfile.photoURL || null,
+            lastSeen: firebaseUtils.convertTimestamp(friendProfile.lastSeen) || null,
+            // Adicione outros campos que você definiu na interface Friend
+          });
+        }
+      }
+      return friendsData;
+    } catch (error) {
+      console.error('Erro ao buscar lista de amigos:', error);
+      return [];
+    }
+  },
+
+  async isFriend(userId1, userId2) {
+    try {
+      const user1Profile = await userService.getUserProfile(userId1);
+      return user1Profile?.friends?.includes(userId2) || false;
+    } catch (error) {
+      console.error('Erro ao verificar amizade:', error);
+      return false;
+    }
+  },
+
+  async searchUsers(searchTerm, currentUserId) {
+    try {
+      if (!searchTerm || searchTerm.trim() === '') {
+        return [];
+      }
+
+      const usersRef = collection(db, 'users');
+      const searchQuery = query(
+        usersRef,
+        where('displayName', '>=', searchTerm),
+        where('displayName', '<=', searchTerm + '\uf8ff'),
+        limit(10) // Limita o número de resultados para otimização
+      );
+
+      const querySnapshot = await getDocs(searchQuery);
+      const usersFound = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(user => user.id !== currentUserId); // Excluir o próprio usuário
+
+      return usersFound;
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+      return [];
+    }
   }
 };
 

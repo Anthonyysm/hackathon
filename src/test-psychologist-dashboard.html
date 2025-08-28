@@ -68,6 +68,28 @@
             0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
             50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
         }
+
+        /* Estilos para o menu mobile */
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+
+        /* Overlay para o menu mobile */
+        .mobile-overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .mobile-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -82,21 +104,24 @@
         </div>
 
         <!-- Header -->
-        <header class="bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-4">
+        <header class="bg-white/5 backdrop-blur-xl border-b border-white/10 px-4 sm:px-6 py-4">
             <div class="flex items-center justify-between">
                 <!-- Logo e título -->
-                <div class="flex items-center space-x-4">
-                    <div class="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
-                        <div class="w-6 h-6 bg-white rounded"></div>
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
+                        <div class="w-4 h-4 sm:w-6 sm:h-6 bg-white rounded"></div>
                     </div>
-                    <div>
+                    <div class="hidden sm:block">
                         <h1 class="text-xl font-semibold text-white">MONITORAMENTO</h1>
                         <p class="text-sm text-white/60">Dashboard do Psicólogo</p>
                     </div>
+                    <div class="sm:hidden">
+                        <h1 class="text-lg font-semibold text-white">MONITOR</h1>
+                    </div>
                 </div>
 
-                <!-- Barra de pesquisa -->
-                <div class="flex-1 max-w-md mx-8">
+                <!-- Barra de pesquisa - oculta em mobile -->
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
                     <div class="relative">
                         <input
                             type="text"
@@ -107,25 +132,100 @@
                 </div>
 
                 <!-- Ações do usuário -->
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <!-- Botão de menu mobile -->
+                    <button id="mobile-menu-btn" class="md:hidden p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
+                        ☰
+                    </button>
+                    
+                    <!-- Botões que ficam visíveis em mobile -->
                     <button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
                         🔔
                     </button>
-                    <button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
+                    
+                    <!-- Botões que ficam ocultos em mobile -->
+                    <button class="hidden sm:block p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
                         ⚙️
                     </button>
-                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <div class="hidden sm:block w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                         👤
                     </div>
-                    <button class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
+                    <button class="hidden sm:block p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
                         🚪
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- Navegação por abas -->
-        <nav class="bg-white/5 border-b border-white/10 px-6">
+        <!-- Menu mobile overlay -->
+        <div id="mobile-overlay" class="mobile-overlay fixed inset-0 bg-black/50 z-40 md:hidden"></div>
+
+        <!-- Menu mobile lateral -->
+        <div id="mobile-menu" class="mobile-menu fixed left-0 top-0 h-full w-64 bg-black/95 backdrop-blur-xl border-r border-white/10 z-50 md:hidden">
+            <div class="p-4">
+                <!-- Header do menu mobile -->
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-semibold text-white">Menu</h2>
+                    <button id="close-mobile-menu" class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300">
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Navegação mobile -->
+                <nav class="space-y-2">
+                    <a href="#" class="flex items-center space-x-3 p-3 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-all duration-300">
+                        <span>📊</span>
+                        <span class="text-sm font-medium">Visão Geral</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 p-3 bg-white/5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300">
+                        <span>👥</span>
+                        <span class="text-sm font-medium">Pacientes</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 p-3 bg-white/5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300">
+                        <span>📅</span>
+                        <span class="text-sm font-medium">Sessões</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 p-3 bg-white/5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300">
+                        <span>📈</span>
+                        <span class="text-sm font-medium">Relatórios</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 p-3 bg-white/5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300">
+                        <span>💬</span>
+                        <span class="text-sm font-medium">Mensagens</span>
+                    </a>
+                </nav>
+
+                <!-- Barra de pesquisa mobile -->
+                <div class="mt-6">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar pacientes, sessões..."
+                            class="w-full pl-4 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-300"
+                        >
+                    </div>
+                </div>
+
+                <!-- Ações do usuário mobile -->
+                <div class="mt-6 space-y-2">
+                    <button class="w-full flex items-center space-x-3 p-3 bg-white/5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300">
+                        <span>⚙️</span>
+                        <span class="text-sm font-medium">Configurações</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 p-3 bg-white/5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300">
+                        <span>👤</span>
+                        <span class="text-sm font-medium">Perfil</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 p-3 bg-white/5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300">
+                        <span>🚪</span>
+                        <span class="text-sm font-medium">Sair</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navegação por abas - oculta em mobile -->
+        <nav class="hidden md:block bg-white/5 border-b border-white/10 px-6">
             <div class="flex space-x-8">
                 <button class="flex items-center space-x-2 py-4 px-2 border-b-2 border-white text-white">
                     <span>📊</span>
@@ -151,27 +251,27 @@
         </nav>
 
         <!-- Conteúdo principal -->
-        <main class="p-6">
+        <main class="p-4 sm:p-6">
             <!-- Cards de monitoramento -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
                 <!-- Card 1 -->
-                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <span class="text-white">👥</span>
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white text-sm sm:text-base">👥</span>
                             </div>
                             <div>
-                                <h3 class="text-white font-medium text-sm">Pacientes Ativos</h3>
+                                <h3 class="text-white font-medium text-xs sm:text-sm">Pacientes Ativos</h3>
                                 <p class="text-white/60 text-xs">Em tratamento</p>
                             </div>
                         </div>
-                                                 <div class="text-right text-white">
-                             <div class="text-lg font-semibold">24</div>
-                             <div class="text-xs text-white/70">+12%</div>
-                         </div>
+                        <div class="text-right text-white">
+                            <div class="text-base sm:text-lg font-semibold">24</div>
+                            <div class="text-xs text-white/70">+12%</div>
+                        </div>
                     </div>
-                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                    <div class="chart-container flex items-end justify-between space-x-1 h-12 sm:h-16">
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 60%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 90%"></div>
@@ -181,23 +281,23 @@
                 </div>
 
                 <!-- Card 2 -->
-                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <span class="text-white">📅</span>
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white text-sm sm:text-base">📅</span>
                             </div>
                             <div>
-                                <h3 class="text-white font-medium text-sm">Sessões Realizadas</h3>
+                                <h3 class="text-white font-medium text-xs sm:text-sm">Sessões Realizadas</h3>
                                 <p class="text-white/60 text-xs">Este mês</p>
                             </div>
                         </div>
-                                                 <div class="text-right text-white">
-                             <div class="text-lg font-semibold">156</div>
-                             <div class="text-xs text-white/70">+8%</div>
-                         </div>
+                        <div class="text-right text-white">
+                            <div class="text-base sm:text-lg font-semibold">156</div>
+                            <div class="text-xs text-white/70">+8%</div>
+                        </div>
                     </div>
-                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                    <div class="chart-container flex items-end justify-between space-x-1 h-12 sm:h-16">
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 65%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 70%"></div>
@@ -207,23 +307,23 @@
                 </div>
 
                 <!-- Card 3 -->
-                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <span class="text-white">📈</span>
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white text-sm sm:text-base">📈</span>
                             </div>
                             <div>
-                                <h3 class="text-white font-medium text-sm">Taxa de Sucesso</h3>
+                                <h3 class="text-white font-medium text-xs sm:text-sm">Taxa de Sucesso</h3>
                                 <p class="text-white/60 text-xs">Tratamentos</p>
                             </div>
                         </div>
-                                                 <div class="text-right text-white">
-                             <div class="text-lg font-semibold">87%</div>
-                             <div class="text-xs text-white/70">+5%</div>
-                         </div>
+                        <div class="text-right text-white">
+                            <div class="text-base sm:text-lg font-semibold">87%</div>
+                            <div class="text-xs text-white/70">+5%</div>
+                        </div>
                     </div>
-                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                    <div class="chart-container flex items-end justify-between space-x-1 h-12 sm:h-16">
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 90%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 95%"></div>
@@ -233,23 +333,23 @@
                 </div>
 
                 <!-- Card 4 -->
-                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <span class="text-white">⏰</span>
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white text-sm sm:text-base">⏰</span>
                             </div>
                             <div>
-                                <h3 class="text-white font-medium text-sm">Tempo Médio</h3>
+                                <h3 class="text-white font-medium text-xs sm:text-sm">Tempo Médio</h3>
                                 <p class="text-white/60 text-xs">Por sessão</p>
                             </div>
                         </div>
-                                                 <div class="text-right text-white">
-                             <div class="text-lg font-semibold">45min</div>
-                             <div class="text-xs text-white/70">-3%</div>
-                         </div>
+                        <div class="text-right text-white">
+                            <div class="text-base sm:text-lg font-semibold">45min</div>
+                            <div class="text-xs text-white/70">-3%</div>
+                        </div>
                     </div>
-                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                    <div class="chart-container flex items-end justify-between space-x-1 h-12 sm:h-16">
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 70%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 60%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
@@ -259,23 +359,23 @@
                 </div>
 
                 <!-- Card 5 -->
-                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <span class="text-white">⭐</span>
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white text-sm sm:text-base">⭐</span>
                             </div>
                             <div>
-                                <h3 class="text-white font-medium text-sm">Avaliações</h3>
+                                <h3 class="text-white font-medium text-xs sm:text-sm">Avaliações</h3>
                                 <p class="text-white/60 text-xs">Satisfação</p>
                             </div>
                         </div>
-                                                 <div class="text-right text-white">
-                             <div class="text-lg font-semibold">4.8</div>
-                             <div class="text-xs text-white/70">+0.2</div>
-                         </div>
+                        <div class="text-right text-white">
+                            <div class="text-base sm:text-lg font-semibold">4.8</div>
+                            <div class="text-xs text-white/70">+0.2</div>
+                        </div>
                     </div>
-                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                    <div class="chart-container flex items-end justify-between space-x-1 h-12 sm:h-16">
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 90%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 80%"></div>
@@ -285,23 +385,23 @@
                 </div>
 
                 <!-- Card 6 -->
-                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
+                <div class="monitoring-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(255,255,255,0.1)] group">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                <span class="text-white">🚀</span>
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <span class="text-white text-sm sm:text-base">🚀</span>
                             </div>
                             <div>
-                                <h3 class="text-white font-medium text-sm">Novos Pacientes</h3>
+                                <h3 class="text-white font-medium text-xs sm:text-sm">Novos Pacientes</h3>
                                 <p class="text-white/60 text-xs">Esta semana</p>
                             </div>
                         </div>
-                                                 <div class="text-right text-white">
-                             <div class="text-lg font-semibold">8</div>
-                             <div class="text-xs text-white/70">+25%</div>
-                         </div>
+                        <div class="text-right text-white">
+                            <div class="text-base sm:text-lg font-semibold">8</div>
+                            <div class="text-xs text-white/70">+25%</div>
+                        </div>
                     </div>
-                    <div class="chart-container flex items-end justify-between space-x-1 h-16">
+                    <div class="chart-container flex items-end justify-between space-x-1 h-12 sm:h-16">
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 60%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 75%"></div>
                         <div class="chart-bar flex-1 rounded-t-sm" style="height: 85%"></div>
@@ -312,11 +412,11 @@
             </div>
 
             <!-- Seção inferior com pacientes e sessões -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <!-- Pacientes recentes -->
-                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-white">Pacientes Recentes</h3>
+                        <h3 class="text-base sm:text-lg font-semibold text-white">Pacientes Recentes</h3>
                         <button class="text-white/60 hover:text-white text-sm transition-colors duration-300">
                             Ver todos
                         </button>
@@ -324,7 +424,7 @@
                     <div class="space-y-3">
                         <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer group">
                             <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center">
                                     👤
                                 </div>
                                 <div>
@@ -335,7 +435,7 @@
                             <div class="text-right">
                                 <div class="text-xs text-white/60 mb-1">Próxima: Amanhã</div>
                                 <div class="flex items-center space-x-2">
-                                    <div class="w-16 bg-white/20 rounded-full h-2">
+                                    <div class="w-12 sm:w-16 bg-white/20 rounded-full h-2">
                                         <div class="h-2 rounded-full bg-white" style="width: 75%"></div>
                                     </div>
                                     <span class="text-xs text-white/60">75%</span>
@@ -346,18 +446,18 @@
                 </div>
 
                 <!-- Próximas sessões -->
-                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+                <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-white">Próximas Sessões</h3>
-                        <button class="flex items-center space-x-2 bg-white text-black px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/90 transition-all duration-300">
+                        <h3 class="text-base sm:text-lg font-semibold text-white">Próximas Sessões</h3>
+                        <button class="flex items-center space-x-2 bg-white text-black px-2 sm:px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-white/90 transition-all duration-300">
                             ➕
-                            Nova
+                            <span class="hidden sm:inline">Nova</span>
                         </button>
                     </div>
                     <div class="space-y-3">
                         <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-300 cursor-pointer group">
                             <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center">
                                     📅
                                 </div>
                                 <div>
@@ -366,10 +466,10 @@
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-lg font-semibold text-white">14:00</div>
-                                                         <div class="text-xs px-2 py-1 rounded-full bg-white/20 text-white">
-                             Confirmado
-                         </div>
+                                <div class="text-base sm:text-lg font-semibold text-white">14:00</div>
+                                <div class="text-xs px-2 py-1 rounded-full bg-white/20 text-white">
+                                    Confirmado
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -377,5 +477,40 @@
             </div>
         </main>
     </div>
+
+    <!-- Script para o menu mobile -->
+    <script>
+        // Elementos do DOM
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+        const closeMobileMenu = document.getElementById('close-mobile-menu');
+
+        // Função para abrir o menu
+        function openMobileMenu() {
+            mobileMenu.classList.add('open');
+            mobileOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Função para fechar o menu
+        function closeMobileMenuFunc() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        // Event listeners
+        mobileMenuBtn.addEventListener('click', openMobileMenu);
+        closeMobileMenu.addEventListener('click', closeMobileMenuFunc);
+        mobileOverlay.addEventListener('click', closeMobileMenuFunc);
+
+        // Fechar menu ao pressionar ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeMobileMenuFunc();
+            }
+        });
+    </script>
 </body>
 </html>

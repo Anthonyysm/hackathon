@@ -228,11 +228,11 @@ function App() {
             raysColor="#ffffff"
             raysSpeed={0.8}
             lightSpread={1.2}
-            rayLength={2.0}
+            rayLength={1.8}
             followMouse={true}
-            mouseInfluence={0.1}
-            noiseAmount={0.03}
-            distortion={0.01}
+            mouseInfluence={0.08}
+            noiseAmount={0.02}
+            distortion={0.008}
             className="w-full h-full"
           />
         </div>

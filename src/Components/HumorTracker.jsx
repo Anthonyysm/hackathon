@@ -22,6 +22,9 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import firebaseService from '../services/firebaseService';
+import NotificationToast from './NotificationToast';
 
 
 
@@ -45,6 +48,10 @@ const HumorTracker = () => {
   const [psychologists, setPsychologists] = useState([]);
   const [loadingPsychologists, setLoadingPsychologists] = useState(false);
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // Para navegar entre semanas
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationType, setNotificationType] = useState('success');
+  const { user } = useAuth();
 
   // Estados para o calendário funcional
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -638,37 +645,56 @@ const HumorTracker = () => {
     }
   };
 
-  const handleScheduleSession = () => {
+  const handleScheduleSession = async () => {
     if (!selectedDate || !selectedTime || !sessionType || !selectedPsychologist) {
       alert('Por favor, preencha todos os campos obrigatórios, incluindo a seleção do psicólogo.');
       return;
     }
+
+    if (!user?.uid) {
+      alert('Você precisa estar logado para agendar uma sessão.');
+      return;
+    }
     
-    // TODO: Implementar agendamento no Firebase
-    console.log('Agendando sessão:', {
-      date: selectedDate,
-      time: selectedTime,
-      type: sessionType,
-      psychologist: {
-        id: selectedPsychologist.id,
-        name: selectedPsychologist.name,
-        email: selectedPsychologist.email,
-        phone: selectedPsychologist.phone,
-        crp: selectedPsychologist.crp
-      },
-      notes: sessionNotes
-    });
-    
-    // Limpar formulário e fechar
-    setSelectedDate('');
-    setSelectedTime('');
-    setSessionType('individual');
-    setSessionNotes('');
-    setSelectedPsychologist(null);
-    setCurrentWeekOffset(0); // Voltar para a semana atual
-    setShowScheduling(false);
-    
-    alert(`Sessão agendada com sucesso com ${selectedPsychologist.name} para ${new Date(selectedDate).toLocaleDateString('pt-BR')} às ${selectedTime}! Em breve entraremos em contato para confirmar.`);
+    try {
+      const sessionRequestData = {
+        clientId: user.uid,
+        clientName: user.displayName || 'Usuário Sereno',
+        psychologistId: selectedPsychologist.id,
+        psychologistName: selectedPsychologist.name,
+        date: selectedDate,
+        time: selectedTime,
+        sessionType: sessionType,
+        notes: sessionNotes,
+        status: 'pending' // Definido como 'pending' no serviço, mas bom explicitar aqui
+      };
+
+      const result = await firebaseService.therapyService.createSessionRequest(sessionRequestData);
+
+      if (result.success) {
+        setNotificationMessage(`Solicitação de sessão com ${selectedPsychologist.name} para ${new Date(selectedDate).toLocaleDateString('pt-BR')} às ${selectedTime} enviada com sucesso!`);
+        setNotificationType('success');
+        setShowNotification(true);
+
+        // Limpar formulário e fechar
+        setSelectedDate('');
+        setSelectedTime('');
+        setSessionType('individual');
+        setSessionNotes('');
+        setSelectedPsychologist(null);
+        setCurrentWeekOffset(0); // Voltar para a semana atual
+        setShowScheduling(false);
+      } else {
+        setNotificationMessage('Erro ao agendar sessão. Tente novamente.');
+        setNotificationType('error');
+        setShowNotification(true);
+      }
+    } catch (error) {
+      console.error('Erro ao agendar sessão:', error);
+      setNotificationMessage('Erro ao agendar sessão. Verifique sua conexão e tente novamente.');
+      setNotificationType('error');
+      setShowNotification(true);
+    }
   };
 
   const getNextWeekDates = (weekOffset = 0) => {
@@ -1777,6 +1803,15 @@ const HumorTracker = () => {
           </div>
         )}
       </div>
+
+      {/* Notification Toast */}
+      <NotificationToast
+        message={notificationMessage}
+        type={notificationType}
+        duration={5000} // Mostra por 5 segundos
+        isVisible={showNotification}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 };

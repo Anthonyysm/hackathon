@@ -21,13 +21,13 @@ import LightWaves from './Components/LightWaves';
 import CommunityGroups from './Components/CommunityGroups';
 import NotificationToast from './Components/NotificationToast';
 import PsychologistDashboard from './Components/PsychologistDashboard';
+import FriendsList from './Components/FriendsList'; // Import the new FriendsList component
 
 function Home() {
   const [activeTab, setActiveTab] = useState('home');
   const [humorDefaultTab, setHumorDefaultTab] = useState('track');
   const [showTour, setShowTour] = useState(false);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
-  const [showWelcomeNotification, setShowWelcomeNotification] = useState(false);
   const { user, loading, isFirstTime, needsProfileCompletion, markTourAsSeen } = useAuth();
   const navigate = useNavigate();
 
@@ -50,17 +50,13 @@ function Home() {
     }
   }, [isFirstTime, loading, needsProfileCompletion]);
 
-  // Mostrar notificação de boas-vindas para novos usuários
+  // Mostrar mensagem de boas-vindas após o tour ser fechado (apenas na primeira vez)
   useEffect(() => {
-    if (!loading && !needsProfileCompletion && isFirstTime && user) {
-      // Aguarda um pouco para o usuário ver a página
-      const timer = setTimeout(() => {
-        setShowWelcomeNotification(true);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+    if (showWelcomeMessage && isFirstTime) {
+      // A mensagem de boas-vindas será mostrada após o tour ser fechado
+      // Não precisamos de timer aqui
     }
-  }, [loading, needsProfileCompletion, isFirstTime, user]);
+  }, [showWelcomeMessage, isFirstTime]);
 
   const handleStartTour = () => {
     setShowTour(true);
@@ -69,7 +65,7 @@ function Home() {
   const handleCloseTour = async () => {
     setShowTour(false);
     
-    // Mostrar mensagem de boas-vindas após o tour ser fechado
+    // Mostrar mensagem de boas-vindas após o tour ser fechado (apenas na primeira vez)
     if (isFirstTime) {
       setShowWelcomeMessage(true);
       await markTourAsSeen();
@@ -77,7 +73,7 @@ function Home() {
   };
 
   const handleCloseWelcomeNotification = () => {
-    setShowWelcomeNotification(false);
+    setShowWelcomeMessage(false);
   };
 
   if (loading) {
@@ -120,6 +116,8 @@ function Home() {
         return <Notifications />;
       case 'settings':
         return <Settings />;
+      case 'friends': // New case for friends tab
+        return <FriendsList />;
       default:
         return (
           <>
@@ -200,22 +198,26 @@ function Home() {
             </div>
           </main>
 
-          {/* Welcome Tour */}
-          <WelcomeTour 
-            isOpen={showTour} 
-            onClose={handleCloseTour}
-            userRole={user?.role || 'cliente'}
-            isFirstTime={isFirstTime}
-          />
+          {/* Welcome Tour - apenas para usuários pela primeira vez */}
+          {isFirstTime && (
+            <WelcomeTour 
+              isOpen={showTour} 
+              onClose={handleCloseTour}
+              userRole={user?.role || 'cliente'}
+              isFirstTime={isFirstTime}
+            />
+          )}
 
-          {/* Welcome Notification */}
-          <NotificationToast
-            message="Bem-vindo ao Sereno! 🎉 Estamos felizes em tê-lo conosco nesta jornada de autoconhecimento e bem-estar."
-            type="success"
-            duration={8000}
-            isVisible={showWelcomeNotification}
-            onClose={handleCloseWelcomeNotification}
-        />
+          {/* Welcome Notification - apenas após o tour ser fechado na primeira vez */}
+          {isFirstTime && (
+            <NotificationToast
+              message="Bem-vindo ao Sereno! 🎉 Estamos felizes em tê-lo conosco nesta jornada de autoconhecimento e bem-estar."
+              type="success"
+              duration={8000}
+              isVisible={showWelcomeMessage}
+              onClose={handleCloseWelcomeNotification}
+            />
+          )}
         </div>
       </UserPostsProvider>
     </>

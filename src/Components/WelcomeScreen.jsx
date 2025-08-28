@@ -80,7 +80,12 @@ const WelcomeScreen = React.memo(({ showWelcomeMessage = false }) => {
     try {
       setLoadingPsychologists(true);
       const psychologistsList = await psychologistService.getRecommendedPsychologists(4);
-      setPsychologists(psychologistsList);
+      // Temporary mock for profile image testing
+      const mockPsychologists = psychologistsList.map(p => ({
+        ...p,
+        profileImage: p.id === 'psychologist1' ? 'https://via.placeholder.com/150/0000FF/FFFFFF?text=PS' : null
+      }));
+      setPsychologists(mockPsychologists);
     } catch (error) {
       console.error('Erro ao buscar psicólogos recomendados:', error);
       setPsychologists([]);
@@ -226,11 +231,19 @@ const WelcomeScreen = React.memo(({ showWelcomeMessage = false }) => {
                   >
                     <div className="flex items-start space-x-4">
                       {/* Avatar com iniciais */}
-                      <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
-                        <span className="text-white font-bold text-sm">
-                          {psychologist.initials}
-                        </span>
-                      </div>
+                      {psychologist.profileImage ? (
+                        <img
+                          src={psychologist.profileImage}
+                          alt={psychologist.name}
+                          className="w-12 h-12 rounded-full object-cover flex-shrink-0 group-hover:scale-110 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                          <span className="text-white font-bold text-sm">
+                            {psychologist.initials}
+                          </span>
+                        </div>
+                      )}
                       
                       {/* Informações do psicólogo */}
                       <div className="flex-1 min-w-0">
