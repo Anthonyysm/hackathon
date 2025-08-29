@@ -3,13 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import firebaseService from '../../services/firebaseService';
-import { 
-  MessageCircle, 
-  Search, 
-  Filter, 
-  Send, 
-  MoreVertical, 
-  Phone, 
+import {
+  MessageCircle,
+  Search,
+  Filter,
+  Send,
+  MoreVertical,
+  Phone,
   Video,
   Mail,
   Clock,
@@ -29,10 +29,12 @@ import {
 } from 'lucide-react';
 import { getPsychologistMessages, createMessage, markMessageAsRead } from '../../services/psychologistService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 const MessagesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showAppToast } = useToast();
   const { roomCode: urlRoomCode } = useParams();
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
@@ -59,27 +61,27 @@ const MessagesPage = () => {
   // Filtrar mensagens
   useEffect(() => {
     let filtered = messages;
-    
+
     if (searchQuery) {
-      filtered = filtered.filter(message => 
+      filtered = filtered.filter(message =>
         message.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         message.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         message.senderName?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     if (statusFilter === 'unread') {
       filtered = filtered.filter(message => !message.read);
     } else if (statusFilter === 'read') {
       filtered = filtered.filter(message => message.read);
     }
-    
+
     setFilteredMessages(filtered);
   }, [messages, searchQuery, statusFilter]);
 
   const loadMessages = async () => {
     if (!user?.uid) return;
-    
+
     setLoading(true);
     try {
       const result = await getPsychologistMessages(user.uid);
@@ -133,7 +135,7 @@ const MessagesPage = () => {
       loadSessionRequests();
     } catch (error) {
       console.error('Erro ao confirmar sessão:', error);
-      alert('Erro ao confirmar sessão. Tente novamente.');
+      showAppToast('Erro ao confirmar sessão. Tente novamente.', 'error');
     }
   };
 
@@ -153,22 +155,22 @@ const MessagesPage = () => {
       loadSessionRequests();
     } catch (error) {
       console.error('Erro ao rejeitar sessão:', error);
-      alert('Erro ao rejeitar sessão. Tente novamente.');
+      showAppToast('Erro ao rejeitar sessão. Tente novamente.', 'error');
     }
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
+
     if (!user?.uid) return;
-    
+
     try {
       const messageData = {
         ...newMessage,
         senderId: user.uid,
         senderName: user.displayName || 'Psicólogo'
       };
-      
+
       const result = await createMessage(messageData);
       if (result.success) {
         setShowCompose(false);
@@ -245,7 +247,7 @@ const MessagesPage = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (now - date) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 24) {
       return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     } else if (diffInHours < 48) {
@@ -308,7 +310,7 @@ const MessagesPage = () => {
             className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-300"
           />
         </div>
-        
+
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -335,7 +337,7 @@ const MessagesPage = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center">
@@ -349,7 +351,7 @@ const MessagesPage = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center justify-center">
@@ -363,7 +365,7 @@ const MessagesPage = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
@@ -471,7 +473,7 @@ const MessagesPage = () => {
                     <p className="text-white/40 text-xs">{formatDate(message.createdAt)}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   {!message.read && (
                     <button
@@ -482,7 +484,7 @@ const MessagesPage = () => {
                       <Check className="w-4 h-4" />
                     </button>
                   )}
-                  
+
                   <button
                     onClick={() => toggleMessageExpansion(message.id)}
                     className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors duration-300"
@@ -493,11 +495,11 @@ const MessagesPage = () => {
                       <ChevronDown className="w-4 h-4" />
                     )}
                   </button>
-                  
+
                   <button className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors duration-300">
                     <Reply className="w-4 h-4" />
                   </button>
-                  
+
                   <button className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors duration-300">
                     <MoreVertical className="w-4 h-4" />
                   </button>
@@ -511,7 +513,7 @@ const MessagesPage = () => {
                     <h4 className="text-sm font-medium text-white/80 mb-2">Mensagem</h4>
                     <p className="text-white/70 text-sm leading-relaxed">{message.content}</p>
                   </div>
-                  
+
                   <div className="flex space-x-3 pt-4">
                     <button className="flex items-center space-x-2 px-3 py-2 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 transition-colors duration-300">
                       <Reply className="w-4 h-4" />
@@ -535,7 +537,7 @@ const MessagesPage = () => {
             </div>
           </div>
         ))}
-        
+
         {filteredMessages.length === 0 && (
           <div className="text-center py-12">
             <MessageCircle className="w-12 h-12 text-white/40 mx-auto mb-4" />
@@ -558,7 +560,7 @@ const MessagesPage = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleSendMessage} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
@@ -573,8 +575,8 @@ const MessagesPage = () => {
                   placeholder="ID do paciente"
                 />
               </div>
-              
-              
+
+
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
                   Conteúdo da Mensagem
@@ -588,7 +590,7 @@ const MessagesPage = () => {
                   placeholder="Digite sua mensagem..."
                 />
               </div>
-              
+
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import Input from './ui/Input';
+import { useToast } from '../contexts/ToastContext';
 
 const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -12,6 +13,7 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
   const { user, loading } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+  const { showAppToast } = useToast();
   const mobileMenuRef = useRef(null);
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -37,11 +39,10 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
       { name: 'Chat', tab: 'chat', icon: MessageCircle, path: '/home/chat' },
       { name: 'Diário', tab: 'diary', icon: BookOpen, path: '/home/diary' },
       { name: 'Humor', tab: 'humor', icon: BarChart3, path: '/home/humor' },
-      { name: 'Grupos', tab: 'groups', icon: Calendar, path: '/home/groups' },
-      { name: 'Amigos', tab: 'friends', icon: Users, path: '/home/friends' }, // New Friends tab
+      { name: 'Grupos', tab: 'groups', icon: Users, path: '/home/groups' }, 
       { name: 'Notificações', tab: 'notifications', icon: Bell, path: '/home/notifications' },
       { name: 'Configurações', tab: 'settings', icon: Settings, path: '/home/settings' },
-      { name: 'Meu Perfil', tab: 'profile', icon: User, path: '/home/profile' },
+      { name: 'Meu Perfil', tab: 'profile', icon: User, path: '/profile' }, 
     ];
     return items;
   }, []);
@@ -59,9 +60,9 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
       closeAllMenus();
     } catch (error) {
       console.error('Erro ao sair:', error);
-      alert('Erro ao sair. Tente novamente.');
+      showAppToast('Erro ao sair. Tente novamente.', 'error');
     }
-  }, [navigate, closeAllMenus]);
+  }, [navigate, closeAllMenus, showAppToast]);
 
   const handleSearch = useCallback((e) => {
     e.preventDefault();
@@ -203,21 +204,26 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
           <div className="hidden lg:flex items-center space-x-4">
             {/* Desktop Navigation */}
             <div className="flex items-center space-x-5">
-              {navItems.slice(0, 4).map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => handleNavClick(item)}
-                  className={`p-2 rounded-lg transition-colors duration-200 ${
-                    activeTab === item.tab 
-                      ? 'bg-white/20 text-white' 
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`}
-                  aria-label={`Navegar para ${item.name}`}
-                  aria-current={activeTab === item.tab ? 'page' : undefined}
-                >
-                  <item.icon className="w-5 h-5" aria-hidden="true" />
-                </button>
-              ))}
+              {navItems.map((item) => {
+                // Excluir 'Meu Perfil' daqui, pois ele tem um dropdown separado
+                // Excluir 'Notificações' e 'Configurações' pois têm botões dedicados
+                if (['profile', 'notifications', 'settings'].includes(item.tab)) return null;
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => handleNavClick(item)}
+                    className={`p-2 rounded-lg transition-colors duration-200 ${
+                      activeTab === item.tab 
+                        ? 'bg-white/20 text-white' 
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                    }`}
+                    aria-label={`Navegar para ${item.name}`}
+                    aria-current={activeTab === item.tab ? 'page' : undefined}
+                  >
+                    <item.icon className="w-5 h-5" aria-hidden="true" />
+                  </button>
+                );
+              })}
               
               {/* Notifications Button */}
               <button
@@ -267,7 +273,11 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button 
-                  className="flex items-center space-x-3 text-white/70 hover:text-white transition-colors duration-200 p-2 rounded-lg hover:bg-white/10"
+                  className={`flex items-center space-x-3 transition-colors duration-200 p-2 rounded-lg ${ 
+                    activeTab === 'profile' 
+                      ? 'bg-white/20 text-white' 
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
                   onClick={toggleDropdown}
                   aria-label="Menu do usuário"
                   aria-expanded={isDropdownOpen}
@@ -289,7 +299,7 @@ const Header = React.memo(({ activeTab, setActiveTab, onStartTour }) => {
                   <div className="absolute right-0 mt-2 w-48 bg-black border border-white/20 rounded-lg shadow-lg py-1 z-50">
                     <button 
                       onClick={() => {
-                        navigate('/home/profile');
+                        navigate('/profile'); // Alterado para /profile
                         setIsDropdownOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-white hover:bg-white/10 transition-colors duration-200 flex items-center space-x-2"

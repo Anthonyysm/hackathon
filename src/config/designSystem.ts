@@ -209,9 +209,6 @@ export const getColor = (color: string, shade: keyof typeof designSystem.colors.
   }
   
   const colorName = colorPath[0] as keyof typeof designSystem.colors;
-  const colorShade = colorPath[1] as keyof typeof designSystem.colors.primary;
-  
-  return designSystem.colors[colorName]?.[colorShade];
 };
 
 export const getSpacing = (size: keyof typeof designSystem.spacing) => {

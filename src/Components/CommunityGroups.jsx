@@ -14,6 +14,13 @@ const CommunityGroups = () => {
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const { user } = useAuth();
 
+  const [newGroup, setNewGroup] = useState({
+    name: '',
+    description: '',
+    isPrivate: false,
+    maxMembers: 50
+  });
+
   // Mock data - substituir por dados reais do Firebase
   useEffect(() => {
     const mockGroups = [
@@ -136,13 +143,6 @@ const CommunityGroups = () => {
     }
   }, [newGroup]);
 
-  const [newGroup, setNewGroup] = useState({
-    name: '',
-    description: '',
-    isPrivate: false,
-    maxMembers: 50
-  });
-
   const filteredGroups = groups.filter(group => {
     const matchesSearch = group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          group.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -165,10 +165,10 @@ const CommunityGroups = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 section-header">
+            <h1 className="text-4xl font-bold text-white mb-2 section-header">
               Explorar Grupos da Comunidade
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-white/70 text-lg">
               Conecte-se com pessoas que compartilham interesses similares e participe de grupos de apoio
             </p>
           </div>
@@ -178,7 +178,7 @@ const CommunityGroups = () => {
             <div className="mb-8">
               <div className="flex items-center space-x-2 mb-4">
                 <Star className="w-6 h-6 text-yellow-500" />
-                <h2 className="text-2xl font-semibold text-gray-900">Grupos em Destaque</h2>
+                <h2 className="text-2xl font-semibold text-white">Grupos em Destaque</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {featuredGroups.map(group => (
@@ -204,7 +204,7 @@ const CommunityGroups = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 leftIcon={Search}
-                className="w-full"
+                className="w-full bg-white/10 border border-white/20 text-white placeholder-white/50 focus:ring-blue-500"
               />
             </div>
             
@@ -212,7 +212,7 @@ const CommunityGroups = () => {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2 border border-white/20 rounded-lg bg-white/10 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Todos os Grupos</option>
                 <option value="featured">Em Destaque</option>
@@ -223,7 +223,7 @@ const CommunityGroups = () => {
               
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="btn-primary flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 transition-colors duration-300"
               >
                 <Plus className="w-5 h-5" />
                 Criar Grupo
@@ -234,8 +234,8 @@ const CommunityGroups = () => {
           {/* User Groups Section */}
           {userGroups.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4 section-header">Meus Grupos</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <h2 className="text-2xl font-semibold text-white mb-4 section-header">Meus Grupos</h2>
+              <div className="gap-6">
                 {userGroups.map(groupId => {
                   const group = groups.find(g => g.id === groupId);
                   if (!group) return null;
@@ -254,10 +254,10 @@ const CommunityGroups = () => {
 
           {/* All Groups Section */}
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4 section-header">
+            <h2 className="text-2xl font-semibold text-white mb-4 section-header">
               {filterType === 'member' ? 'Meus Grupos' : 'Todos os Grupos'}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="gap-6">
               {filteredGroups.map(group => (
                 <GroupCard
                   key={group.id}
@@ -273,11 +273,11 @@ const CommunityGroups = () => {
           {/* Create Group Modal */}
           {showCreateModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-                <h3 className="text-xl font-semibold mb-4">Criar Novo Grupo</h3>
+              <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md mx-4 border border-gray-700">
+                <h3 className="text-xl font-semibold text-white mb-4">Criar Novo Grupo</h3>
                 <form onSubmit={handleCreateGroup} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-white/70 mb-1">
                       Nome do Grupo
                     </label>
                     <Input
@@ -286,37 +286,38 @@ const CommunityGroups = () => {
                       onChange={(e) => setNewGroup(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Digite o nome do grupo"
                       required
+                      className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-white/70 mb-1">
                       Descrição
                     </label>
                     <textarea
                       value={newGroup.description}
                       onChange={(e) => setNewGroup(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Descreva o propósito do grupo"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       rows="3"
                       required
                     />
                   </div>
                   
                   <div className="flex items-center gap-4">
-                    <label className="flex items-center">
+                    <label className="flex items-center text-white/70">
                       <input
                         type="checkbox"
                         checked={newGroup.isPrivate}
                         onChange={(e) => setNewGroup(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                        className="mr-2"
+                        className="mr-2 form-checkbox h-5 w-5 text-blue-600 bg-white/10 border-white/20 rounded"
                       />
                       Grupo Privado
                     </label>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-white/70 mb-1">
                       Máximo de Membros
                     </label>
                     <Input
@@ -325,6 +326,7 @@ const CommunityGroups = () => {
                       onChange={(e) => setNewGroup(prev => ({ ...prev, maxMembers: parseInt(e.target.value) }))}
                       min="2"
                       max="1000"
+                      className="w-full px-3 py-2 border border-white/20 rounded-lg bg-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   
@@ -332,13 +334,13 @@ const CommunityGroups = () => {
                     <button
                       type="button"
                       onClick={() => setShowCreateModal(false)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg text-white/70 hover:bg-gray-800 transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 btn-primary"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                     >
                       Criar Grupo
                     </button>
@@ -356,19 +358,19 @@ const CommunityGroups = () => {
 // Componente do Card do Grupo
 const GroupCard = ({ group, onJoin, onLeave, isUserGroup, isFeatured = false }) => {
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300">
+    <Card className="group hover:shadow-lg transition-all duration-300 bg-white/5 border border-gray-700 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <Users className="w-5 h-5 text-black" />
+            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+              <Users className="w-5 h-5 text-white/50" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
                 {group.name}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-white/60">
                 {group.isPrivate ? (
                   <>
                     <Lock className="w-4 h-4" />
@@ -388,19 +390,19 @@ const GroupCard = ({ group, onJoin, onLeave, isUserGroup, isFeatured = false }) 
           </div>
           
           {group.isMember && (
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+            <span className="px-2 py-1 bg-green-800 text-green-200 text-xs font-medium rounded-full">
               Membro
             </span>
           )}
         </div>
 
         {/* Description */}
-        <p className="text-gray-600 mb-4 line-clamp-3">
+        <p className="text-white/80 mb-4 line-clamp-3">
           {group.description}
         </p>
 
         {/* Stats */}
-        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+        <div className="flex items-center justify-between text-sm text-white/60 mb-4">
           <span>{group.memberCount}/{group.maxMembers} membros</span>
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-500" />
@@ -413,7 +415,7 @@ const GroupCard = ({ group, onJoin, onLeave, isUserGroup, isFeatured = false }) 
           {group.tags.slice(0, 3).map((tag, index) => (
             <span
               key={index}
-              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+              className="px-2 py-1 bg-blue-800 text-blue-200 text-xs rounded-full"
             >
               {tag}
             </span>
@@ -425,14 +427,14 @@ const GroupCard = ({ group, onJoin, onLeave, isUserGroup, isFeatured = false }) 
           {isUserGroup ? (
             <button
               onClick={() => onLeave(group.id)}
-              className="flex-1 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+              className="flex-1 px-4 py-2 bg-red-800 text-red-200 rounded-lg hover:bg-red-700 transition-colors"
             >
               Sair do Grupo
             </button>
           ) : (
             <button
               onClick={() => onJoin(group.id)}
-              className="flex-1 btn-primary"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
             >
               Entrar no Grupo
             </button>

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Send, ChevronRight, Edit, Trash2, X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { diaryService, firebaseUtils } from '../services/firebaseService';
+import { useToast } from '../contexts/ToastContext';
 
 const InteractiveDiary = () => {
   const { user } = useAuth();
+  const { showAppToast } = useToast();
   const [diaryEntry, setDiaryEntry] = useState('');
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [recentEntries, setRecentEntries] = useState([]);
@@ -75,7 +77,7 @@ const InteractiveDiary = () => {
       
     } catch (error) {
       console.error('Erro ao salvar entrada:', error);
-      alert('Erro ao salvar reflexão. Tente novamente.');
+      showAppToast('Erro ao salvar reflexão. Tente novamente.', 'error');
     } finally {
       setLoading(false);
     }
@@ -100,7 +102,7 @@ const InteractiveDiary = () => {
       
     } catch (error) {
       console.error('Erro ao editar entrada:', error);
-      alert('Erro ao editar reflexão. Tente novamente.');
+      showAppToast('Erro ao editar reflexão. Tente novamente.', 'error');
     } finally {
       setLoading(false);
     }
@@ -118,7 +120,7 @@ const InteractiveDiary = () => {
       
     } catch (error) {
       console.error('Erro ao excluir entrada:', error);
-      alert('Erro ao excluir reflexão. Tente novamente.');
+      showAppToast('Erro ao excluir reflexão. Tente novamente.', 'error');
     } finally {
       setLoading(false);
     }

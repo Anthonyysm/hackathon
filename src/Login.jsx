@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, googleProvider } from './firebase';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowLeft, User, Brain } from 'lucide-react';
+import { useToast } from './contexts/ToastContext';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -25,7 +26,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
-      alert('Por favor, preencha todos os campos.');
+      showAppToast('Por favor, preencha todos os campos.', 'error');
       return;
     }
     
@@ -34,7 +35,7 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
       console.log('Login realizado com sucesso:', user.email);
-      alert('Login realizado com sucesso!');
+      showAppToast('Login realizado com sucesso!', 'success');
       
       // Verificar se é psicólogo e redirecionar adequadamente
       if (userType === 'psychologist') {
@@ -63,7 +64,7 @@ const Login = () => {
           errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      showAppToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +76,7 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       console.log('Login com Google realizado com sucesso:', user.email);
-      alert('Login com Google realizado com sucesso!');
+      showAppToast('Login com Google realizado com sucesso!', 'success');
       
       // Para login com Google, redirecionar para home (usuário comum)
       // Psicólogos devem usar login com email/senha
@@ -101,7 +102,7 @@ const Login = () => {
           errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      showAppToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -109,14 +110,14 @@ const Login = () => {
 
   const handleReset = async () => {
     if (!formData.email) {
-      alert('Digite seu e-mail para receber o link de redefinição.');
+      showAppToast('Digite seu e-mail para receber o link de redefinição.', 'info');
       return;
     }
     
     try {
       const { sendPasswordResetEmail } = await import('firebase/auth');
       await sendPasswordResetEmail(auth, formData.email);
-      alert('Email de redefinição enviado! Verifique sua caixa de entrada.');
+      showAppToast('Email de redefinição enviado! Verifique sua caixa de entrada.', 'success');
     } catch (error) {
       console.error('Erro ao enviar email de redefinição:', error);
       let errorMessage = 'Erro ao enviar email de redefinição.';
@@ -135,7 +136,7 @@ const Login = () => {
           errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      showAppToast(errorMessage, 'error');
     }
   };
 

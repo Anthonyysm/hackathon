@@ -6,6 +6,7 @@ import LightRays from './Components/LightRays';
 import { auth, db } from './firebase';
 import { notificationService } from './services/firebaseService';
 import { useAuth } from './contexts/AuthContext';
+import { useToast } from './contexts/ToastContext';
 
 const CompleteProfile = () => {
   const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ const CompleteProfile = () => {
   const [previewProfile, setPreviewProfile] = useState(null);
   const [previewBanner, setPreviewBanner] = useState(null);
   const navigate = useNavigate();
+  const { showAppToast } = useToast();
   
   const profilePhotoRef = useRef();
   const bannerPhotoRef = useRef();
@@ -64,13 +66,13 @@ const CompleteProfile = () => {
     if (file) {
       // Validar tipo de arquivo
       if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecione apenas arquivos de imagem.');
+        showAppToast('Por favor, selecione apenas arquivos de imagem.', 'error');
         return;
       }
       
       // Validar tamanho (2MB máximo para base64)
       if (file.size > 2 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 2MB para upload direto.');
+        showAppToast('A imagem deve ter no máximo 2MB para upload direto.', 'error');
         return;
       }
       
@@ -105,14 +107,14 @@ const CompleteProfile = () => {
     e.preventDefault();
     
     if (!formData.username || !formData.birthDate || !formData.phone) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+      showAppToast('Por favor, preencha todos os campos obrigatórios.', 'error');
       return;
     }
 
     // Validar formato do username (apenas letras, números e underscore)
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!usernameRegex.test(formData.username)) {
-      alert('O username deve ter entre 3 e 20 caracteres e conter apenas letras, números e underscore (_).');
+      showAppToast('O username deve ter entre 3 e 20 caracteres e conter apenas letras, números e underscore (_).', 'error');
       return;
     }
 
@@ -163,7 +165,7 @@ const CompleteProfile = () => {
       
     } catch (error) {
       console.error('Erro ao salvar dados:', error);
-      alert(`Erro ao salvar os dados: ${error.message}`);
+      showAppToast(`Erro ao salvar os dados: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }

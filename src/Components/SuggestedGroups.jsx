@@ -66,17 +66,6 @@ const SuggestedGroups = ({ setActiveTab }) => {
   };
 
   const popularCommunities = getPopularCommunities(5);
-
-  // Filter friends based on search
-  // const filteredFriends = []; // This will be populated dynamically
-
-  // const handleSearchChange = (e) => {
-  //   setSearchTerm(e.target.value);
-  // };
-  //
-  // const clearSearch = () => {
-  //   setSearchTerm('');
-  // };
   
   if (loading) {
     return (

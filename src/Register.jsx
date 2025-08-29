@@ -4,6 +4,7 @@ import { auth, db } from './firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, Phone, Calendar, Brain, AtSign } from 'lucide-react';
+import { useToast } from './contexts/ToastContext';
 
 const Register = () => {
   const [role, setRole] = useState('cliente'); // 'cliente' | 'psicologo'
@@ -27,6 +28,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(null);
   const navigate = useNavigate();
+  const { showAppToast } = useToast();
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -38,19 +40,19 @@ const Register = () => {
     
     // Validar campos obrigatórios
     if (!formData.name || !formData.username || !formData.email || !formData.birthDate || !formData.phone || !formData.password || !formData.confirmPassword) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+      showAppToast('Por favor, preencha todos os campos obrigatórios.', 'error');
       return;
     }
     
     if (formData.password !== formData.confirmPassword) {
-      alert('As senhas não coincidem');
+      showAppToast('As senhas não coincidem', 'error');
       return;
     }
 
     // Validar formato do username (apenas letras, números e underscore)
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!usernameRegex.test(formData.username)) {
-      alert('O username deve ter entre 3 e 20 caracteres e conter apenas letras, números e underscore (_).');
+      showAppToast('O username deve ter entre 3 e 20 caracteres e conter apenas letras, números e underscore (_).', 'error');
       return;
     }
 
@@ -107,7 +109,7 @@ const Register = () => {
         });
       }
 
-      alert('Conta criada com sucesso!');
+      showAppToast('Conta criada com sucesso!', 'success');
       
       // Redirecionar baseado no tipo de usuário
       if (role === 'psicologo') {
@@ -117,7 +119,7 @@ const Register = () => {
       }
     } catch (error) {
       console.error('Erro ao registrar:', error);
-      alert(error.message);
+      showAppToast(error.message, 'error');
     } finally {
       setIsLoading(false);
     }

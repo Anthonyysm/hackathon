@@ -1,11 +1,13 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Calendar, CheckCircle, MessageCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { moodService } from '../services/firebaseService';
+import { useToast } from '../contexts/ToastContext';
 
 const MoodTracker = ({ onOpenHumorTab }) => {
   const { user } = useAuth();
+  const { showAppToast } = useToast();
   const [weeklyData, setWeeklyData] = useState([
     { day: 'Seg', mood: 0, energy: 0 },
     { day: 'Ter', mood: 0, energy: 0 },
@@ -48,15 +50,15 @@ const MoodTracker = ({ onOpenHumorTab }) => {
     load();
   }, [user]);
 
-  const handleSaveCheckin = async () => {
+  const handleSaveCheckin = useCallback(async () => {
     if (!user) {
-      alert('Usuário não autenticado');
+      showAppToast('Usuário não autenticado', 'error');
       return;
     }
 
     // Validação dos dados
     if (intensity < 0 || intensity > 10 || energy < 0 || energy > 10 || stability < 0 || stability > 10) {
-      alert('Por favor, verifique se todos os valores estão entre 0 e 10');
+      showAppToast('Por favor, verifique se todos os valores estão entre 0 e 10', 'error');
       return;
     }
 
@@ -125,11 +127,11 @@ const MoodTracker = ({ onOpenHumorTab }) => {
         errorMessage = 'Erro de conexão. Verifique sua internet.';
       }
       
-      alert(errorMessage);
+      showAppToast(errorMessage, 'error');
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [user, intensity, energy, stability, showAppToast]);
 
   // Componente de slider customizado
   const CustomSlider = ({ value, onChange, label }) => (

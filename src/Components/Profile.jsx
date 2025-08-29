@@ -1,15 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom'; // Importar useParams
 import { useAuth } from '../contexts/AuthContext';
 import { usePosts } from '../hooks/usePosts';
 import { useImages } from '../hooks/useImages';
-import { Edit3, Plus, FileText, User, Calendar, Phone, AtSign, Camera, Image, X, Save, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useFriendship } from '../contexts/FriendshipContext'; // Importar useFriendship
+import { useToast } from '../contexts/ToastContext'; // Import useToast
+import { Edit3, Plus, FileText, User, Calendar, Phone, AtSign, Camera, Image, X, Save, Trash2, Eye, EyeOff, UserPlus, UserCheck, UserMinus } from 'lucide-react';
 import PostCreation from './PostCreation';
 import { profileImageService } from '../services/profileImageService';
 import { postService, userService } from '../services/firebaseService';
+import { friendService } from '../services/firebaseService'; // Import friendService
 
 const Profile = () => {
+  const { userId: profileUserIdParam } = useParams(); // Obter userId da URL, se existir
   const { user, loading } = useAuth();
-  const { createPost, deletePost } = usePosts(); // Removido posts e loading do usePosts
+  const { setFriendshipStatusChanged } = useFriendship(); // Use context here
+  // Usar profileUserIdParam se existir, caso contrário, usar o user.uid autenticado
+  const currentProfileId = profileUserIdParam || user?.uid;
+
+  const { createPost, deletePost } = usePosts();
   const [editing, setEditing] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [userPosts, setUserPosts] = useState([]);
@@ -22,6 +31,16 @@ const Profile = () => {
     birthDate: ''
   });
   
+  // Friendship states
+  const [isFriend, setIsFriend] = useState(false);
+  const [friendRequestSent, setFriendRequestSent] = useState(false);
+  const [friendRequestReceived, setFriendRequestReceived] = useState(false);
+  const [sentRequestId, setSentRequestId] = useState(null); // New state to store sent request ID
+  
+  // Novo estado para o perfil que está sendo visualizado (se não for o próprio)
+  const [viewedUserProfile, setViewedUserProfile] = useState(null);
+  const [viewedProfileLoading, setViewedProfileLoading] = useState(false);
+  
   // Refs para os inputs de arquivo
   const profilePhotoInputRef = useRef(null);
   const bannerPhotoInputRef = useRef(null);
@@ -32,55 +51,147 @@ const Profile = () => {
   
   // Hook para gerenciar imagens do Firestore
   const { 
-    profilePhoto: profilePhotoData, 
-    bannerPhoto: bannerPhotoData, 
+    profilePhoto: profilePhotoFromHook, // Renomear para evitar conflito
+    bannerPhoto: bannerPhotoFromHook, // Renomear para evitar conflito
     loading: imagesLoading,
     loadUserImages, 
     updateImage 
-  } = useImages(user?.uid);
+  } = useImages(currentProfileId);
 
+  const { showAppToast } = useToast(); // Use the hook
+
+  // Determinar qual URL de imagem usar
+  const profilePhotoData = profileUserIdParam ? viewedUserProfile?.profilePhotoUrl || profilePhotoFromHook : profilePhotoFromHook;
+  const bannerPhotoData = profileUserIdParam ? viewedUserProfile?.bannerPhotoUrl || bannerPhotoFromHook : bannerPhotoFromHook;
+
+  // Efeito para carregar o perfil do usuário visualizado
+  useEffect(() => {
+    if (profileUserIdParam && user?.uid !== profileUserIdParam) {
+      const fetchViewedUserProfile = async () => {
+        setViewedProfileLoading(true);
+        try {
+          const profile = await userService.getUserProfile(profileUserIdParam);
+          setViewedUserProfile(profile);
+          // Definir editForm com os dados do perfil visualizado para preencher os campos de exibição
+          setEditForm({
+            displayName: profile?.displayName || '',
+            username: profile?.username || '',
+            bio: profile?.bio || '',
+            phone: profile?.phone || '',
+            birthDate: profile?.birthDate || ''
+          });
+        } catch (error) {
+          console.error('Erro ao buscar perfil do usuário visualizado:', error);
+          showAppToast('Erro ao carregar perfil. Tente novamente.', 'error');
+        } finally {
+          setViewedProfileLoading(false);
+        }
+      };
+      fetchViewedUserProfile();
+    } else if (user && !profileUserIdParam) {
+      // Se não há profileUserIdParam, é o próprio perfil, então buscar os dados completos do Firestore
+      const fetchOwnUserProfile = async () => {
+        setViewedProfileLoading(true);
+        try {
+          const profile = await userService.getUserProfile(user.uid);
+          setViewedUserProfile(profile);
+          setEditForm({
+            displayName: profile?.displayName || '',
+            username: profile?.username || '',
+            bio: profile?.bio || '',
+            phone: profile?.phone || '',
+            birthDate: profile?.birthDate || ''
+          });
+        } catch (error) {
+          console.error('Erro ao buscar o próprio perfil do usuário:', error);
+          showAppToast('Erro ao carregar seu perfil. Tente novamente.', 'error');
+        } finally {
+          setViewedProfileLoading(false);
+        }
+      };
+      fetchOwnUserProfile();
+    }
+  }, [profileUserIdParam, user]);
+  
   // Filtrar posts do usuário (apenas posts públicos aparecem no perfil)
   useEffect(() => {
-    if (user) {
+    if (currentProfileId && viewedUserProfile) { // Apenas buscar posts se o perfil a ser exibido já estiver carregado
       const fetchUserPosts = async () => {
         setPostsLoading(true);
         try {
-          const posts = await postService.getUserPosts(user.uid);
-          setUserPosts(posts);
+          const posts = await postService.getUserPosts(currentProfileId);
+          // Garantir que os posts exibam o avatar e nome do perfil atual do usuário
+          const postsWithUserAvatar = posts.map(post => ({
+            ...post,
+            avatar: profilePhotoPreview || profilePhotoData || viewedUserProfile?.profilePhotoUrl || null, 
+            author: viewedUserProfile?.displayName || viewedUserProfile?.username || 'Usuário' 
+          }));
+          setUserPosts(postsWithUserAvatar);
         } catch (error) {
           console.error('Erro ao buscar posts do usuário:', error);
-          alert('Erro ao carregar posts do perfil. Tente novamente.');
+          showAppToast('Erro ao carregar posts do perfil. Tente novamente.', 'error');
         } finally {
           setPostsLoading(false);
         }
       };
       fetchUserPosts();
     }
-  }, [user]);
+  }, [currentProfileId, profilePhotoData, profilePhotoPreview, viewedUserProfile]); // Adicionar viewedUserProfile como dependência
+
+  // Efeito para verificar status de amizade
+  useEffect(() => {
+    const checkFriendshipStatus = async () => {
+      if (user?.uid && currentProfileId && user.uid !== currentProfileId) {
+        try {
+          const isCurrentlyFriend = await friendService.isFriend(user.uid, currentProfileId);
+          setIsFriend(isCurrentlyFriend);
+
+          if (!isCurrentlyFriend) {
+            const sent = await friendService.hasSentFriendRequest(user.uid, currentProfileId);
+            setFriendRequestSent(sent.exists);
+            if (sent.exists) {
+              setSentRequestId(sent.requestId); // Store the request ID
+            }
+
+            const received = await friendService.hasReceivedFriendRequest(currentProfileId, user.uid); // Check if THIS profile sent a request to ME
+            setFriendRequestReceived(received.exists);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar status de amizade:', error);
+        }
+      } else {
+        setIsFriend(false);
+        setFriendRequestSent(false);
+        setFriendRequestReceived(false);
+        setSentRequestId(null); // Clear request ID if not applicable
+      }
+    };
+    checkFriendshipStatus();
+  }, [user?.uid, currentProfileId]);
 
   // Inicializar formulário de edição e carregar imagens
   useEffect(() => {
-    if (user) {
+    if (currentProfileId) {
       setEditForm({
-        displayName: user.displayName || user.profileData?.displayName || '',
-        username: user.profileData?.username || '',
-        bio: user.profileData?.bio || '',
-        phone: user.profileData?.phone || '',
-        birthDate: user.profileData?.birthDate || ''
+        displayName: user?.displayName || '',
+        username: user?.username || '',
+        bio: user?.bio || '',
+        phone: user?.phone || '',
+        birthDate: user?.birthDate || ''
       });
       
       // Carregar imagens do usuário
       loadUserImages();
     }
-  }, [user, loadUserImages]);
+  }, [currentProfileId, loadUserImages, user]); // Adicionar user ao array de dependências para reações a mudanças no usuário autenticado
 
   // Recarregar dados do usuário quando o perfil for atualizado
   useEffect(() => {
-    if (user && !editing) {
+    if (currentProfileId && !editing) {
       // Recarregar dados do usuário para mostrar as atualizações
       const refreshUserData = async () => {
         try {
-          const updatedProfile = await userService.getUserProfile(user.uid);
+          const updatedProfile = await userService.getUserProfile(currentProfileId);
           if (updatedProfile) {
             // Atualizar o estado local com os novos dados
             setEditForm({
@@ -98,7 +209,7 @@ const Profile = () => {
       
       refreshUserData();
     }
-  }, [user, editing]);
+  }, [currentProfileId, editing]); // Usar currentProfileId para depender do ID correto
 
   const handleEditProfile = () => {
     setEditing(true);
@@ -118,13 +229,13 @@ const Profile = () => {
             // Obter o arquivo do input
             const profilePhotoFile = profilePhotoInputRef.current?.files[0];
             if (profilePhotoFile) {
-              const currentProfilePhotoId = user?.profileData?.profilePhotoId;
-              await updateImage(profilePhotoFile, 'profilePhoto', currentProfilePhotoId);
-              console.log('Foto de perfil substituída');
+              const currentProfilePhotoId = user?.profilePhotoId; // Acessar diretamente
+              await updateImage(profilePhotoFile, 'profilePhoto', currentProfilePhotoId, currentProfileId); // Passar currentProfileId
+              showAppToast('Foto de perfil atualizada com sucesso!', 'success');
             }
           } catch (error) {
             console.error('Erro ao substituir foto de perfil:', error);
-            alert('Erro ao atualizar foto de perfil. Tente novamente.');
+            showAppToast('Erro ao atualizar foto de perfil. Tente novamente.', 'error');
             return;
           }
         }
@@ -135,13 +246,13 @@ const Profile = () => {
             // Obter o arquivo do input
             const bannerPhotoFile = bannerPhotoInputRef.current?.files[0];
             if (bannerPhotoFile) {
-              const currentBannerId = user?.profileData?.bannerPhotoId;
-              await updateImage(bannerPhotoFile, 'bannerPhoto', currentBannerId);
-              console.log('Banner substituído');
+              const currentBannerId = user?.bannerPhotoId; // Acessar diretamente
+              await updateImage(bannerPhotoFile, 'bannerPhoto', currentBannerId, currentProfileId); // Passar currentProfileId
+              showAppToast('Banner atualizado com sucesso!', 'success');
             }
           } catch (error) {
             console.error('Erro ao substituir banner:', error);
-            alert('Erro ao substituir banner. Tente novamente.');
+            showAppToast('Erro ao substituir banner. Tente novamente.', 'error');
             return;
           }
         }
@@ -149,11 +260,11 @@ const Profile = () => {
       
       // Salvar dados básicos do perfil
       try {
-        await userService.updateUserBasicProfile(user.uid, editForm);
-        console.log('Perfil básico atualizado');
+        await userService.updateUserBasicProfile(currentProfileId, editForm); // Usar currentProfileId
+        showAppToast('Perfil básico atualizado com sucesso!', 'success');
       } catch (error) {
         console.error('Erro ao atualizar perfil básico:', error);
-        alert('Erro ao atualizar dados do perfil. Tente novamente.');
+        showAppToast('Erro ao atualizar dados do perfil. Tente novamente.', 'error');
         return;
       }
       
@@ -164,17 +275,24 @@ const Profile = () => {
       
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
-      alert('Erro ao salvar perfil. Tente novamente.');
+      showAppToast('Erro ao salvar perfil. Tente novamente.', 'error');
     }
   };
 
   const handleCancelEdit = () => {
+    if (profileUserIdParam) {
+      setEditing(false);
+      setProfilePhotoPreview(null);
+      setBannerPhotoPreview(null);
+      loadUserImages();
+      return;
+    }
     setEditForm({
-      displayName: user?.displayName || user?.profileData?.displayName || '',
-      username: user?.profileData?.username || '',
-      bio: user?.profileData?.bio || '',
-      phone: user?.profileData?.phone || '',
-      birthDate: user?.profileData?.birthDate || ''
+      displayName: user?.displayName || '',
+      username: user?.username || '',
+      bio: user?.bio || '',
+      phone: user?.phone || '',
+      birthDate: user?.birthDate || ''
     });
     setEditing(false);
     // Limpar previews das imagens
@@ -182,6 +300,73 @@ const Profile = () => {
     setBannerPhotoPreview(null);
     // Recarregar imagens originais
     loadUserImages();
+  };
+
+  // Não permitir edição se não for o perfil do usuário autenticado
+  const isOwnProfile = user?.uid === currentProfileId;
+
+  const handleAddFriend = async () => {
+    if (!user?.uid || !currentProfileId) return;
+    try {
+      await friendService.sendFriendRequest(user.uid, user.displayName || 'Usuário Sereno', user.photoURL || null, currentProfileId);
+      setFriendRequestSent(true);
+      showAppToast('Pedido de amizade enviado!', 'success');
+      setFriendshipStatusChanged(prev => !prev); // Notificar mudança no status de amizade
+    } catch (error) {
+      console.error('Erro ao enviar pedido de amizade:', error);
+      showAppToast(error.message || 'Erro ao enviar pedido de amizade. Tente novamente.', 'error');
+    }
+  };
+
+  const handleCancelFriendRequest = async () => {
+    if (!user?.uid || !currentProfileId || !sentRequestId) return;
+    try {
+      await friendService.cancelFriendRequest(sentRequestId);
+      setFriendRequestSent(false);
+      setSentRequestId(null);
+      showAppToast('Pedido de amizade cancelado.', 'info');
+      setFriendshipStatusChanged(prev => !prev); // Notificar mudança no status de amizade
+    } catch (error) {
+      console.error('Erro ao cancelar pedido de amizade:', error);
+      showAppToast(error.message || 'Erro ao cancelar pedido de amizade. Tente novamente.', 'error');
+    }
+  };
+
+  const handleAcceptFriendRequest = async () => {
+    if (!user?.uid || !currentProfileId) return;
+    try {
+      // Before accepting, we need to get the requestId. If friendRequestReceived is true, it means currentProfileId is the sender and user.uid is the recipient.
+      const receivedRequest = await friendService.hasReceivedFriendRequest(currentProfileId, user.uid);
+      if (!receivedRequest.exists || !receivedRequest.requestId) {
+        throw new Error("Solicitação de amizade não encontrada para aceitar.");
+      }
+      await friendService.acceptFriendRequest(receivedRequest.requestId, user.uid); 
+      setIsFriend(true);
+      setFriendRequestReceived(false);
+      showAppToast('Solicitação de amizade aceita!', 'success');
+      setFriendshipStatusChanged(prev => !prev); // Notificar mudança no status de amizade
+    } catch (error) {
+      console.error('Erro ao aceitar pedido de amizade:', error);
+      showAppToast(error.message || 'Erro ao aceitar solicitação. Tente novamente.', 'error');
+    }
+  };
+
+  const handleRejectFriendRequest = async () => {
+    if (!user?.uid || !currentProfileId) return;
+    try {
+      // Before rejecting, we need to get the requestId.
+      const receivedRequest = await friendService.hasReceivedFriendRequest(currentProfileId, user.uid);
+      if (!receivedRequest.exists || !receivedRequest.requestId) {
+        throw new Error("Solicitação de amizade não encontrada para rejeitar.");
+      }
+      await friendService.rejectFriendRequest(receivedRequest.requestId, user.uid); 
+      setFriendRequestReceived(false);
+      showAppToast('Solicitação de amizade rejeitada.', 'info');
+      setFriendshipStatusChanged(prev => !prev); // Notificar mudança no status de amizade
+    } catch (error) {
+      console.error('Erro ao rejeitar pedido de amizade:', error);
+      showAppToast(error.message || 'Erro ao rejeitar solicitação. Tente novamente.', 'error');
+    }
   };
 
   const handleProfilePhotoChange = (event) => {
@@ -199,7 +384,7 @@ const Profile = () => {
         };
         reader.readAsDataURL(file);
       } catch (error) {
-        alert(error.message);
+        showAppToast(error.message, 'error');
         // Limpar o input
         event.target.value = '';
       }
@@ -221,7 +406,7 @@ const Profile = () => {
         };
         reader.readAsDataURL(file);
       } catch (error) {
-        alert(error.message);
+        showAppToast(error.message, 'error');
         // Limpar o input
         event.target.value = '';
       }
@@ -242,31 +427,22 @@ const Profile = () => {
 
   const handlePostCreated = async (postData) => {
     try {
-      const result = await createPost(postData);
-      if (result) {
+      const newPost = await createPost(postData);
+      if (newPost) {
         setShowCreatePost(false);
         
-        // Buscar o post recém-criado do Firebase para obter o ID real
-        try {
-          const userPosts = await postService.getUserPosts(user.uid);
-          setUserPosts(userPosts);
-        } catch (error) {
-          console.error('Erro ao atualizar lista de posts:', error);
-          // Fallback: adicionar post localmente com ID temporário
-          const newPost = {
-            id: Date.now().toString(),
-            ...postData,
-            createdAt: new Date(),
-            likes: [],
-            commentCount: 0,
-            shares: 0,
-            isEdited: false
-          };
-          setUserPosts(prev => [newPost, ...prev]);
-        }
+        // Adicionar o post recém-criado ao estado local do perfil
+        // E garantir que a imagem de perfil do usuário seja usada como avatar
+        const postWithAvatar = {
+          ...newPost,
+          avatar: profilePhotoPreview || profilePhotoData || viewedUserProfile?.profilePhotoUrl || null, // Usar photoURL do perfil sendo exibido
+          author: viewedUserProfile?.displayName || viewedUserProfile?.username || 'Usuário' // Usar displayName, depois username, depois fallback
+        };
+        setUserPosts(prev => [postWithAvatar, ...prev]);
       }
     } catch (error) {
       console.error('Erro ao criar post:', error);
+      showAppToast('Erro ao criar post. Tente novamente.', 'error');
     }
   };
 
@@ -277,9 +453,11 @@ const Profile = () => {
         if (success) {
           // Remover o post do estado local do perfil
           setUserPosts(prev => prev.filter(post => post.id !== postId));
+          showAppToast('Post deletado com sucesso!', 'success');
         }
       } catch (error) {
         console.error('Erro ao deletar post:', error);
+        showAppToast('Erro ao deletar post. Tente novamente.', 'error');
       }
     }
   };
@@ -357,7 +535,7 @@ const Profile = () => {
   };
 
   // Loading state
-  if (loading || imagesLoading) {
+  if (loading || imagesLoading || viewedProfileLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="loading-spinner"></div>
@@ -366,8 +544,8 @@ const Profile = () => {
     );
   }
 
-  // Se não há usuário, mostrar erro
-  if (!user) {
+  // Se não há usuário e não estamos visualizando um perfil específico, mostrar erro
+  if (!user && !profileUserIdParam) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
@@ -376,6 +554,23 @@ const Profile = () => {
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Usuário não autenticado</h2>
           <p className="text-white/60">Faça login para acessar seu perfil</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Dados do perfil a serem exibidos
+  const profileToDisplay = viewedUserProfile; 
+  // Fallback para quando viewedUserProfile ainda está carregando ou não encontrado
+  if (!profileToDisplay && profileUserIdParam) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-12 h-12 text-white/30" />
+          </div>
+          <h3 className="text-xl text-white/60 mb-2">Perfil não encontrado</h3>
+          <p className="text-white/40">O perfil que você está procurando não existe ou não está disponível.</p>
         </div>
       </div>
     );
@@ -395,7 +590,7 @@ const Profile = () => {
         <div className="absolute inset-0 bg-black/20"></div>
         
         {/* Botão de edição do banner */}
-        {editing && (
+        {editing && isOwnProfile && ( // Apenas permitir edição no próprio perfil
           <button 
             onClick={triggerBannerPhotoInput}
             className="absolute top-4 right-4 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors flex items-center space-x-2"
@@ -410,9 +605,9 @@ const Profile = () => {
       <div className="relative -mt-20 px-8">
         <div className="relative">
           <div className="w-40 h-40 rounded-full border-4 border-white bg-white/10 flex items-center justify-center overflow-hidden">
-            {(profilePhotoPreview || profilePhotoData) ? (
+            {(profilePhotoPreview || profileToDisplay?.profilePhotoUrl) ? (
               <img 
-                src={profilePhotoPreview || profilePhotoData} 
+                src={profilePhotoPreview || profileToDisplay?.profilePhotoUrl} 
                 alt="Foto de perfil" 
                 className="w-full h-full object-cover"
               />
@@ -422,7 +617,7 @@ const Profile = () => {
           </div>
           
           {/* Botão de edição da foto de perfil */}
-          {editing && (
+          {editing && isOwnProfile && ( // Apenas permitir edição no próprio perfil
             <button 
               onClick={triggerProfilePhotoInput}
               className="absolute bottom-2 right-2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
@@ -522,30 +717,30 @@ const Profile = () => {
               </div>
             ) : (
               <>
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  {user?.displayName || user?.profileData?.displayName || 'Usuário'}
+                <h1 className="text-2xl font-bold mt-5 text-white mb-2">
+                  {profileToDisplay?.displayName || 'Usuário'}
                 </h1>
                 
-                <p className="text-white/80 text-lg mb-3">
-                  @{user?.profileData?.username || 'usuario'}
+                <p className="text-white/80 text-lg mb-3"> {/* Added mt-1 here */}
+                  @{profileToDisplay?.username || 'usuario'}
                 </p>
                 
                 <p className="text-white/70 mb-3">
-                  {user?.profileData?.bio || 'Nenhuma biografia adicionada'}
+                  {profileToDisplay?.bio || 'Nenhuma biografia adicionada'}
                 </p>
                 
                 <div className="flex items-center space-x-6 text-sm text-white/60">
-                  {user?.profileData?.phone && (
+                  {profileToDisplay?.phone && (
                     <div className="flex items-center space-x-2">
                       <Phone className="w-4 h-4" />
-                      <span>{user.profileData.phone}</span>
+                      <span>{profileToDisplay.phone}</span>
                     </div>
                   )}
                   
-                  {user?.profileData?.birthDate && (
+                  {profileToDisplay?.birthDate && (
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4" />
-                      <span>{formatDate(user.profileData.birthDate)}</span>
+                      <span>{formatDate(profileToDisplay.birthDate)}</span>
                     </div>
                   )}
                 </div>
@@ -553,7 +748,7 @@ const Profile = () => {
             )}
           </div>
 
-          {!editing && (
+          {!editing && isOwnProfile && ( // Apenas mostrar o botão de editar no próprio perfil
             <button
               onClick={handleEditProfile}
               className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white transition-colors flex items-center space-x-2"
@@ -562,6 +757,57 @@ const Profile = () => {
               <span>Editar Perfil</span>
             </button>
           )}
+          
+          {!editing && !isOwnProfile && (
+            <div className="flex items-center space-x-3">
+              {isFriend ? (
+                <button
+                  disabled
+                  className="px-6 py-3 bg-white/5 border border-white/10 rounded-full text-white/50 flex items-center space-x-2"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>Amigos</span>
+                </button>
+              ) : friendRequestSent ? (
+                <>
+                  <button
+                    disabled
+                    className="px-6 py-3 bg-white/5 border border-white/10 rounded-full text-white/50 flex items-center space-x-2"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleCancelFriendRequest}
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white transition-colors flex items-center space-x-2"
+                  >
+                    <UserMinus className="w-4 h-4" />
+                  </button>
+                </>
+              ) : friendRequestReceived ? (
+                <>
+                  <button
+                    onClick={handleAcceptFriendRequest}
+                    className="px-6 py-3 bg-green-500 hover:bg-green-600 border border-green-400 rounded-full text-white transition-colors flex items-center space-x-2"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleRejectFriendRequest}
+                    className="px-6 py-3 bg-red-500 hover:bg-red-600 border border-red-400 rounded-full text-white transition-colors flex items-center space-x-2"
+                  >
+                    <UserMinus className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleAddFriend}
+                  className="px-6 py-3 mt-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white transition-colors flex items-center space-x-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -569,13 +815,15 @@ const Profile = () => {
       <div className="px-8 pb-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Posts</h2>
-          <button
-            onClick={handleCreatePost}
-            className="px-6 py-3 bg-white hover:bg-gray-100 text-black rounded-lg font-medium transition-colors flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Criar Post</span>
-          </button>
+          {isOwnProfile && ( // Apenas mostrar o botão de criar post no próprio perfil
+            <button
+              onClick={handleCreatePost}
+              className="px-6 py-3 bg-white hover:bg-gray-100 text-black rounded-lg font-medium transition-colors flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Criar Post</span>
+            </button>
+          )}
         </div>
         
         {postsLoading ? (
@@ -592,13 +840,15 @@ const Profile = () => {
             <p className="text-white/40 mb-6">
               Seus posts públicos aparecerão aqui. Posts anônimos não são exibidos no perfil.
             </p>
-            <button
-              onClick={handleCreatePost}
-              className="px-6 py-3 bg-white hover:bg-gray-100 text-black rounded-lg font-medium transition-colors flex items-center space-x-2 mx-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Criar Primeiro Post</span>
-            </button>
+            {isOwnProfile && ( // Apenas mostrar o botão de criar post no próprio perfil
+              <button
+                onClick={handleCreatePost}
+                className="px-6 py-3 bg-white hover:bg-gray-100 text-black rounded-lg font-medium transition-colors flex items-center space-x-2 mx-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Criar Primeiro Post</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
@@ -606,7 +856,7 @@ const Profile = () => {
               <div key={post.id} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
                       {post.avatar && (post.avatar.startsWith('http://') || post.avatar.startsWith('https://')) ? (
                         <img src={post.avatar} alt={post.author} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
@@ -622,12 +872,14 @@ const Profile = () => {
                     </div>
                   </div>
                   
-                  <button
-                    onClick={() => handleDeletePost(post.id)}
-                    className="p-2 text-white/50 hover:text-red-400 transition-colors rounded-full hover:bg-white/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {isOwnProfile && ( // Apenas mostrar o botão de deletar post no próprio perfil
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      className="p-2 text-white/50 hover:text-red-400 transition-colors rounded-full hover:bg-white/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 
                 <p className="text-white/90 leading-relaxed mb-4">{post.content}</p>
@@ -651,7 +903,7 @@ const Profile = () => {
       </div>
 
       {/* Create Post Modal */}
-      {showCreatePost && (
+      {showCreatePost && isOwnProfile && ( // Apenas mostrar o modal de criar post no próprio perfil
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
@@ -674,20 +926,24 @@ const Profile = () => {
       )}
 
       {/* Hidden file inputs */}
-      <input
-        ref={profilePhotoInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleProfilePhotoChange}
-        className="hidden"
-      />
-      <input
-        ref={bannerPhotoInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleBannerPhotoChange}
-        className="hidden"
-      />
+      {isOwnProfile && ( // Apenas mostrar inputs de arquivo no próprio perfil
+        <input
+          ref={profilePhotoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleProfilePhotoChange}
+          className="hidden"
+        />
+      )}
+      {isOwnProfile && (
+        <input
+          ref={bannerPhotoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleBannerPhotoChange}
+          className="hidden"
+        />
+      )}
     </div>
   );
 };

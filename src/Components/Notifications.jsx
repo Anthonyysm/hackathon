@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Bell, Check, Trash2, X, MessageCircle, Heart, UserPlus, Calendar, BookOpen } from 'lucide-react';
+import { Bell, Check, Trash2, X, MessageCircle, Heart, UserPlus, Calendar, BookOpen, UserCheck, UserMinus } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { friendService } from '../services/firebaseService'; // Import friendService
+import { useAuth } from '../contexts/AuthContext'; // Import useAuth
+import { useFriendship } from '../contexts/FriendshipContext'; // Import useFriendship
 
 const Notifications = () => {
   const { 
@@ -13,6 +17,9 @@ const Notifications = () => {
     clearAllNotifications 
   } = useNotifications();
   
+  const { user } = useAuth(); // Get authenticated user
+  const { setFriendshipStatusChanged } = useFriendship(); // Get setter for friendship status
+  const navigate = useNavigate(); // Initialize navigate
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const getNotificationIcon = (type) => {
@@ -23,6 +30,8 @@ const Notifications = () => {
         return { icon: MessageCircle, color: 'text-blue-400' };
       case 'follow':
         return { icon: UserPlus, color: 'text-green-400' };
+      case 'friend_request': // New case for friend requests
+        return { icon: UserPlus, color: 'text-purple-400' };
       case 'session':
         return { icon: Calendar, color: 'text-yellow-400' };
       case 'mood':
@@ -53,6 +62,41 @@ const Notifications = () => {
     if (diffInDays < 7) return `${diffInDays}d atrás`;
     
     return date.toLocaleDateString('pt-BR');
+  };
+
+  const handleAcceptFriendRequest = async (notificationId, senderId) => {
+    if (!user?.uid) return;
+    try {
+      await friendService.acceptFriendRequest(notificationId, user.uid); // notificationId is the requestId
+      await markAsRead(notificationId);
+      setFriendshipStatusChanged(prev => !prev); // Trigger update in FriendsList
+      navigate(`/profile/${senderId}`); // Navigate to sender's profile
+    } catch (error) {
+      console.error('Erro ao aceitar solicitação de amizade pela notificação:', error);
+      // Optionally show error toast
+    }
+  };
+
+  const handleRejectFriendRequest = async (notificationId, senderId) => {
+    if (!user?.uid) return;
+    try {
+      await friendService.rejectFriendRequest(notificationId, user.uid); // notificationId is the requestId
+      await markAsRead(notificationId);
+      setFriendshipStatusChanged(prev => !prev); // Trigger update in FriendsList
+      navigate(`/profile/${senderId}`); // Navigate to sender's profile
+    } catch (error) {
+      console.error('Erro ao rejeitar solicitação de amizade pela notificação:', error);
+      // Optionally show error toast
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    await markAsRead(notification.id);
+    if (notification.type === 'friend_request' && notification.senderId) {
+      navigate(`/profile/${notification.senderId}`);
+    } else if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+    }
   };
 
   if (loading) {
@@ -119,11 +163,12 @@ const Notifications = () => {
           return (
             <div
               key={notification.id}
-              className={`p-4 rounded-lg border transition-all ${
+              className={`p-4 rounded-lg border transition-all cursor-pointer ${
                 notification.read
                   ? 'bg-white/5 border-white/10 text-white/70'
                   : 'bg-blue-500/10 border-blue-500/30 text-white'
               }`}
+              onClick={() => handleNotificationClick(notification)} // Make entire card clickable
             >
               <div className="flex items-start space-x-3">
                 <div className={`p-2 rounded-lg bg-white/10 ${color}`}>
@@ -138,25 +183,70 @@ const Notifications = () => {
                       <span className="text-xs opacity-60">{formatTime(notification.createdAt)}</span>
                     </div>
                     
-                    <div className="flex items-center space-x-2 ml-3">
-                      {!notification.read && (
+                    {notification.type === 'friend_request' && !notification.read && (
+                      <div className="flex items-center space-x-2 ml-3">
                         <button
-                          onClick={() => markAsRead(notification.id)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            handleAcceptFriendRequest(notification.requestId, notification.senderId);
+                          }}
+                          className="p-2 bg-green-500 hover:bg-green-600 rounded-full transition-colors"
+                          title="Aceitar solicitação"
+                        >
+                          <UserCheck className="w-4 h-4 text-white" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            handleRejectFriendRequest(notification.requestId, notification.senderId);
+                          }}
+                          className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition-colors"
+                          title="Rejeitar solicitação"
+                        >
+                          <UserMinus className="w-4 h-4 text-white" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {!notification.read && notification.type !== 'friend_request' && (
+                      <div className="flex items-center space-x-2 ml-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notification.id);
+                          }}
                           className="p-1 hover:bg-white/10 rounded transition-colors"
                           title="Marcar como lida"
                         >
                           <Check className="w-4 h-4" />
                         </button>
-                      )}
-                      
-                      <button
-                        onClick={() => deleteNotification(notification.id)}
-                        className="p-1 hover:bg-red-500/20 rounded transition-colors text-red-400"
-                        title="Deletar notificação"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(notification.id);
+                          }}
+                          className="p-1 hover:bg-red-500/20 rounded transition-colors text-red-400"
+                          title="Deletar notificação"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {notification.read && (
+                      <div className="flex items-center space-x-2 ml-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(notification.id);
+                          }}
+                          className="p-1 hover:bg-red-500/20 rounded transition-colors text-red-400"
+                          title="Deletar notificação"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

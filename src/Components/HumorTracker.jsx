@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import firebaseService from '../services/firebaseService';
-import NotificationToast from './NotificationToast';
+import { useToast } from '../contexts/ToastContext';
 
 
 
@@ -48,10 +48,8 @@ const HumorTracker = () => {
   const [psychologists, setPsychologists] = useState([]);
   const [loadingPsychologists, setLoadingPsychologists] = useState(false);
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // Para navegar entre semanas
-  const [showNotification, setShowNotification] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState('');
-  const [notificationType, setNotificationType] = useState('success');
   const { user } = useAuth();
+  const { showAppToast } = useToast();
 
   // Estados para o calendário funcional
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -325,7 +323,7 @@ const HumorTracker = () => {
       setLoading(true);
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        alert('Usuário não autenticado');
+        showAppToast('Usuário não autenticado', 'error');
         return;
       }
       
@@ -340,10 +338,10 @@ const HumorTracker = () => {
         return newData;
       });
       
-      alert('Entrada de humor excluída com sucesso!');
+      showAppToast('Entrada de humor excluída com sucesso!', 'success');
     } catch (error) {
       console.error('Erro ao excluir entrada de humor:', error);
-      alert('Erro ao excluir entrada de humor. Tente novamente.');
+      showAppToast('Erro ao excluir entrada de humor. Tente novamente.', 'error');
     } finally {
       setLoading(false);
     }
@@ -556,11 +554,11 @@ const HumorTracker = () => {
         
         console.log(`${isEditing ? 'Humor editado' : 'Humor registrado'} com sucesso para:`, dateToSave);
       } else {
-        alert(`Erro ao ${isEditing ? 'editar' : 'salvar'} humor. Tente novamente.`);
+        showAppToast(`Erro ao ${isEditing ? 'editar' : 'salvar'} humor. Tente novamente.`, 'error');
       }
     } catch (error) {
       console.error(`Erro ao ${selectedDateCalendar?.date && moodData[selectedDateCalendar.date] ? 'editar' : 'registrar'} humor:`, error);
-      alert(`Erro ao ${selectedDateCalendar?.date && moodData[selectedDateCalendar.date] ? 'editar' : 'registrar'} humor. Tente novamente.`);
+      showAppToast(`Erro ao ${selectedDateCalendar?.date && moodData[selectedDateCalendar.date] ? 'editar' : 'registrar'} humor. Tente novamente.`, 'error');
     } finally {
       setLoading(false);
     }
@@ -647,12 +645,12 @@ const HumorTracker = () => {
 
   const handleScheduleSession = async () => {
     if (!selectedDate || !selectedTime || !sessionType || !selectedPsychologist) {
-      alert('Por favor, preencha todos os campos obrigatórios, incluindo a seleção do psicólogo.');
+      showAppToast('Por favor, preencha todos os campos obrigatórios, incluindo a seleção do psicólogo.', 'error');
       return;
     }
 
     if (!user?.uid) {
-      alert('Você precisa estar logado para agendar uma sessão.');
+      showAppToast('Você precisa estar logado para agendar uma sessão.', 'error');
       return;
     }
     
@@ -672,10 +670,7 @@ const HumorTracker = () => {
       const result = await firebaseService.therapyService.createSessionRequest(sessionRequestData);
 
       if (result.success) {
-        setNotificationMessage(`Solicitação de sessão com ${selectedPsychologist.name} para ${new Date(selectedDate).toLocaleDateString('pt-BR')} às ${selectedTime} enviada com sucesso!`);
-        setNotificationType('success');
-        setShowNotification(true);
-
+        showAppToast(`Solicitação de sessão com ${selectedPsychologist.name} para ${new Date(selectedDate).toLocaleDateString('pt-BR')} às ${selectedTime} enviada com sucesso!`, 'success');
         // Limpar formulário e fechar
         setSelectedDate('');
         setSelectedTime('');
@@ -685,15 +680,11 @@ const HumorTracker = () => {
         setCurrentWeekOffset(0); // Voltar para a semana atual
         setShowScheduling(false);
       } else {
-        setNotificationMessage('Erro ao agendar sessão. Tente novamente.');
-        setNotificationType('error');
-        setShowNotification(true);
+        showAppToast('Erro ao agendar sessão. Tente novamente.', 'error');
       }
     } catch (error) {
       console.error('Erro ao agendar sessão:', error);
-      setNotificationMessage('Erro ao agendar sessão. Verifique sua conexão e tente novamente.');
-      setNotificationType('error');
-      setShowNotification(true);
+      showAppToast('Erro ao agendar sessão. Verifique sua conexão e tente novamente.', 'error');
     }
   };
 
@@ -1803,15 +1794,6 @@ const HumorTracker = () => {
           </div>
         )}
       </div>
-
-      {/* Notification Toast */}
-      <NotificationToast
-        message={notificationMessage}
-        type={notificationType}
-        duration={5000} // Mostra por 5 segundos
-        isVisible={showNotification}
-        onClose={() => setShowNotification(false)}
-      />
     </div>
   );
 };

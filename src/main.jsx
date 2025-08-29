@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { routes } from './routes';
 import './index.css';
+import { FriendshipProvider } from './contexts/FriendshipContext'; // Import FriendshipProvider
+import { ToastProvider } from './contexts/ToastContext'; // Import ToastProvider
 
 const rootElement = document.getElementById('root');
 const root = rootElement ? createRoot(rootElement) : null;
@@ -38,7 +40,11 @@ if (root) {
     <StrictMode>
       <BrowserRouter>
         <AuthProvider>
-          <AppContent />
+          <FriendshipProvider> {/* Wrap with FriendshipProvider */}
+            <ToastProvider> {/* Wrap with ToastProvider */}
+              <AppContent />
+            </ToastProvider>
+          </FriendshipProvider>
         </AuthProvider>
       </BrowserRouter>
     </StrictMode>

@@ -1488,12 +1488,53 @@ export const friendService = {
         senderId,
         senderName,
         message: `${senderName} enviou uma solicitação de amizade.`, // Mensagem mais descritiva
-        actionUrl: '/friends?tab=requests' // Link para a tela de solicitações
+        actionUrl: `/profile/${senderId}`, // Link para o perfil do remetente
+        requestId: docRef.id // Adicionar o ID da solicitação de amizade
       });
 
       return { success: true, requestId: docRef.id };
     } catch (error) {
       console.error('Erro ao enviar solicitação de amizade:', error);
+      throw error;
+    }
+  },
+
+  async hasSentFriendRequest(senderId, recipientId) {
+    try {
+      const friendRequestsRef = collection(db, 'friendRequests');
+      const q = query(
+        friendRequestsRef,
+        where('senderId', '==', senderId),
+        where('recipientId', '==', recipientId),
+        where('status', '==', 'pending')
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        return { exists: true, requestId: querySnapshot.docs[0].id };
+      }
+      return { exists: false, requestId: null };
+    } catch (error) {
+      console.error('Erro ao verificar se solicitação foi enviada:', error);
+      throw error;
+    }
+  },
+
+  async hasReceivedFriendRequest(senderId, recipientId) {
+    try {
+      const friendRequestsRef = collection(db, 'friendRequests');
+      const q = query(
+        friendRequestsRef,
+        where('senderId', '==', senderId),
+        where('recipientId', '==', recipientId),
+        where('status', '==', 'pending')
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        return { exists: true, requestId: querySnapshot.docs[0].id };
+      }
+      return { exists: false, requestId: null };
+    } catch (error) {
+      console.error('Erro ao verificar se solicitação foi recebida:', error);
       throw error;
     }
   },
@@ -1577,6 +1618,17 @@ export const friendService = {
       return { success: true };
     } catch (error) {
       console.error('Erro ao rejeitar solicitação de amizade:', error);
+      throw error;
+    }
+  },
+
+  async cancelFriendRequest(requestId) {
+    try {
+      const requestRef = doc(db, 'friendRequests', requestId);
+      await deleteDoc(requestRef);
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao cancelar solicitação de amizade:', error);
       throw error;
     }
   },

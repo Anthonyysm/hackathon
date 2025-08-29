@@ -134,10 +134,10 @@ export const usePosts = () => {
         };
         
         setPosts(prev => [newPost, ...prev]);
-        return true;
+        return newPost; // Retornar o objeto do novo post
       }
       
-      return false;
+      return null; // Retornar null se não for bem-sucedido
     } catch (err) {
       console.error('Erro ao criar post:', err);
       throw err;

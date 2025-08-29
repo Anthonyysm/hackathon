@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import App from '../App.jsx';
-import CommunityGroup from '../Components/CommunityGroup.jsx';
 import CommunityGroups from '../Components/CommunityGroups.jsx';
 import CompleteProfile from '../CompleteProfile.jsx';
 import Connected from '../Connected.jsx';
@@ -239,7 +238,7 @@ export const routes = [
   },
   {
     path: '/profile/:userId',
-    element: <CompleteProfileRoute><Profile /></CompleteProfileRoute>,
+    element: <CompleteProfileRoute><UserPostsProvider><MainLayout><Profile /></MainLayout></UserPostsProvider></CompleteProfileRoute>,
     protected: true,
     title: 'Sereno - Perfil',
     category: 'main'
@@ -276,7 +275,7 @@ export const routes = [
   },
   {
     path: '/community/:communityId',
-    element: <CompleteProfileRoute><CommunityGroup /></CompleteProfileRoute>,
+    element: <CompleteProfileRoute><CommunityGroups /></CompleteProfileRoute>,
     protected: true,
     title: 'Sereno - Comunidade',
     category: 'community'

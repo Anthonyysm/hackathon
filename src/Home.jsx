@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from './Components/Header';
 import WelcomeScreen from './Components/WelcomeScreen';
 import PostCreationWithSync from './Components/PostCreationWithSync';
 import SocialFeed from './Components/SocialFeed';
 import SuggestedGroups from './Components/SuggestedGroups';
+import FriendListCard from './Components/FriendListCard';
 import MoodTracker from './Components/MoodTracker';
 import TherapySessions from './Components/TherapySessions';
 import InteractiveDiary from './Components/InteractiveDiary';
@@ -21,7 +22,9 @@ import LightWaves from './Components/LightWaves';
 import CommunityGroups from './Components/CommunityGroups';
 import NotificationToast from './Components/NotificationToast';
 import PsychologistDashboard from './Components/PsychologistDashboard';
-import FriendsList from './Components/FriendsList'; // Import the new FriendsList component
+import { useFriendship } from './contexts/FriendshipContext'; // Import useFriendship
+import { useToast } from './contexts/ToastContext'; // Import useToast
+import LoggedInProfileCard from './Components/LoggedInProfileCard';
 
 function Home() {
   const [activeTab, setActiveTab] = useState('home');
@@ -30,6 +33,30 @@ function Home() {
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const { user, loading, isFirstTime, needsProfileCompletion, markTourAsSeen } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Initialize useLocation
+  const { friendshipStatusChanged } = useFriendship(); // Use context here
+  const { showAppToast } = useToast(); // Use the hook
+  
+  // State for toasts
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('info'); // 'success', 'error', 'info'
+  const [toastIsVisible, setToastIsVisible] = useState(false);
+
+  // Atualizar activeTab com base na URL
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/profile')) {
+      setActiveTab('profile');
+    } else if (path === '/home' || path === '/') {
+      setActiveTab('home');
+    } else if (path.startsWith('/home/')) {
+      // Extrair a parte da URL após /home/ para determinar a aba
+      const tab = path.substring(6);
+      setActiveTab(tab.split('/')[0]); // Pega a primeira parte, ex: /home/sessions -> sessions
+    } else {
+      setActiveTab('home'); // Fallback para home
+    }
+  }, [location.pathname]);
 
   // Debug: Log activeTab changes
   useEffect(() => {
@@ -117,7 +144,7 @@ function Home() {
       case 'settings':
         return <Settings />;
       case 'friends': // New case for friends tab
-        return <FriendsList />;
+        return <FriendListCard />;
       default:
         return (
           <>
@@ -145,7 +172,9 @@ function Home() {
           {/* Left Sidebar - Suggested Groups */}
           <aside className="lg:col-span-3">
             <div className="sticky top-24">
+              <LoggedInProfileCard />
               <SuggestedGroups setActiveTab={setActiveTab} />
+              <FriendListCard />
             </div>
           </aside>
 
@@ -218,6 +247,14 @@ function Home() {
               onClose={handleCloseWelcomeNotification}
             />
           )}
+          {/* App-wide Toast */}
+          <NotificationToast
+            message={toastMessage}
+            type={toastType}
+            isVisible={toastIsVisible}
+            onClose={() => setToastIsVisible(false)}
+            duration={5000}
+          />
         </div>
       </UserPostsProvider>
     </>

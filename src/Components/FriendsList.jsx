@@ -2,11 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, X, Check, Search, MessageCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { friendService, userService } from '../services/firebaseService';
-import NotificationToast from './NotificationToast';
+import { useToast } from '../contexts/ToastContext'; // Import useToast
 import { Friend, FriendRequest, UserProfile } from '../types';
+import { useFriendship } from '../contexts/FriendshipContext'; // Import useFriendship
 
-const FriendsList = () => {
+interface FriendsListProps {
+  simplified?: boolean;
+}
+
+const FriendsList = ({ simplified = false }: FriendsListProps) => {
   const { user } = useAuth();
+  const { friendshipStatusChanged } = useFriendship(); // Use context here
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' or 'requests' or 'find'
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -14,7 +20,7 @@ const FriendsList = () => {
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; isVisible: boolean }>({ message: '', type: 'info', isVisible: false });
+  const { showAppToast } = useToast(); // Use the hook
 
   // Função utilitária para formatar o status "último visto"
   const formatLastSeen = (lastSeen: Date | undefined | null) => {
@@ -46,7 +52,7 @@ const FriendsList = () => {
     } catch (err: any) {
       console.error("Erro ao buscar dados de amigos:", err);
       setError(err.message || "Erro ao carregar dados de amizade.");
-      showToast(err.message || "Erro ao carregar dados de amizade.", 'error');
+      showAppToast(err.message || "Erro ao carregar dados de amizade.", 'error');
     } finally {
       setLoading(false);
     }
@@ -54,23 +60,18 @@ const FriendsList = () => {
 
   useEffect(() => {
     fetchFriendData();
-  }, [user]);
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    setToast({ message, type, isVisible: true });
-    setTimeout(() => setToast(prev => ({ ...prev, isVisible: false })), 5000);
-  };
+  }, [user, friendshipStatusChanged]); // Adicionar friendshipStatusChanged como dependência
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
       if (user) {
         await friendService.acceptFriendRequest(requestId, user.uid);
-        showToast("Solicitação de amizade aceita!", 'success');
+        showAppToast("Solicitação de amizade aceita!", 'success');
         fetchFriendData(); // Recarregar dados
       }
     } catch (err: any) {
       console.error("Erro ao aceitar solicitação:", err);
-      showToast(err.message || "Erro ao aceitar solicitação.", 'error');
+      showAppToast(err.message || "Erro ao aceitar solicitação.", 'error');
     }
   };
 
@@ -78,12 +79,12 @@ const FriendsList = () => {
     try {
       if (user) {
         await friendService.rejectFriendRequest(requestId, user.uid);
-        showToast("Solicitação de amizade rejeitada.", 'info');
+        showAppToast("Solicitação de amizade rejeitada.", 'info');
         fetchFriendData(); // Recarregar dados
       }
     } catch (err: any) {
       console.error("Erro ao rejeitar solicitação:", err);
-      showToast(err.message || "Erro ao rejeitar solicitação.", 'error');
+      showAppToast(err.message || "Erro ao rejeitar solicitação.", 'error');
     }
   };
 
@@ -98,7 +99,7 @@ const FriendsList = () => {
       setSearchResults(results);
     } catch (err: any) {
       console.error("Erro ao buscar usuários:", err);
-      showToast(err.message || "Erro ao buscar usuários.", 'error');
+      showAppToast(err.message || "Erro ao buscar usuários.", 'error');
     } finally {
       setLoading(false);
     }
@@ -106,16 +107,16 @@ const FriendsList = () => {
 
   const handleSendFriendRequest = async (recipientId: string) => {
     if (!user) {
-      showToast("Você precisa estar logado para enviar solicitações.", 'error');
+      showAppToast("Você precisa estar logado para enviar solicitações.", 'error');
       return;
     }
     try {
       await friendService.sendFriendRequest(user.uid, user.displayName || 'Usuário Sereno', user.photoURL || null, recipientId);
-      showToast("Solicitação de amizade enviada!", 'success');
+      showAppToast("Solicitação de amizade enviada!", 'success');
       // Optionally update UI without refetching all requests
     } catch (err: any) {
       console.error("Erro ao enviar solicitação:", err);
-      showToast(err.message || "Erro ao enviar solicitação.", 'error');
+      showAppToast(err.message || "Erro ao enviar solicitação.", 'error');
     }
   };
 
@@ -128,38 +129,35 @@ const FriendsList = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-black text-white p-6 rounded-2xl shadow-lg border border-gray-700/50 animation-initial animate-fade-in animation-delay-100">
-      <NotificationToast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
-      />
+    <div className={`bg-gradient-to-br from-gray-900 to-black text-white p-6 rounded-2xl shadow-lg border border-gray-700/50 animation-initial animate-fade-in animation-delay-100 ${simplified ? '' : 'mb-6'}`}>
+      {!simplified && (
+        <h2 className="text-3xl font-bold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Rede de Amigos</h2>
+      )}
 
-      <h2 className="text-3xl font-bold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Rede de Amigos</h2>
-
-      <div className="flex justify-center space-x-4 mb-8">
-        <button
-          onClick={() => setActiveTab('friends')}
-          className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 transform ${activeTab === 'friends' ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg text-white scale-105' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
-        >
-          Meus Amigos
-        </button>
-        <button
-          onClick={() => setActiveTab('requests')}
-          className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 transform ${activeTab === 'requests' ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg text-white scale-105' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
-        >
-          Solicitações {pendingRequests.length > 0 && (
-            <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">{pendingRequests.length}</span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('find')}
-          className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 transform ${activeTab === 'find' ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg text-white scale-105' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
-        >
-          Encontrar Amigos
-        </button>
-      </div>
+      {!simplified && (
+        <div className="flex justify-center space-x-4 mb-8">
+          <button
+            onClick={() => setActiveTab('friends')}
+            className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 transform ${activeTab === 'friends' ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg text-white scale-105' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
+          >
+            Meus Amigos
+          </button>
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 transform ${activeTab === 'requests' ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg text-white scale-105' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
+          >
+            Solicitações {pendingRequests.length > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">{pendingRequests.length}</span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('find')}
+            className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 transform ${activeTab === 'find' ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg text-white scale-105' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
+          >
+            Encontrar Amigos
+          </button>
+        </div>
+      )}
 
       {loading && (
         <div className="flex items-center justify-center py-8">
@@ -186,7 +184,7 @@ const FriendsList = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {friends.map(friend => (
                 <div key={friend.uid} className="bg-gray-800 p-5 rounded-xl shadow-md flex items-center space-x-4 border border-gray-700 hover:border-purple-500 transition-all duration-300 group">
                   <div className="relative">
@@ -213,7 +211,7 @@ const FriendsList = () => {
         </div>
       )}
 
-      {!loading && !error && activeTab === 'requests' && (
+      {!loading && !error && activeTab === 'requests' && !simplified && (
         <div className="animation-initial animate-fade-in-up">
           {pendingRequests.length === 0 ? (
             <div className="text-center py-12 bg-gray-800/50 rounded-xl">
@@ -260,7 +258,7 @@ const FriendsList = () => {
         </div>
       )}
 
-      {!loading && !error && activeTab === 'find' && (
+      {!loading && !error && activeTab === 'find' && !simplified && (
         <div className="animation-initial animate-fade-in-up">
           <div className="mb-6">
             <div className="relative">

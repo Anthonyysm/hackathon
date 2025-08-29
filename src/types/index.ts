@@ -91,21 +91,39 @@ export interface Comment {
   isHidden?: boolean;
 }
 
-export interface CommunityGroup {
+export interface Community {
   id: string;
   name: string;
   description: string;
-  avatar?: string;
-  coverImage?: string;
   memberCount: number;
-  postCount: number;
-  createdAt: Date;
-  createdBy: string;
+  maxMembers: number;
   isPrivate: boolean;
+  category: string;
   tags: string[];
-  rules: string[];
-  moderators: string[];
-  members: string[];
+  createdAt: string;
+  lastActivity: string;
+  isMember: boolean;
+  isFeatured: boolean;
+  rating: number;
+}
+
+export interface CommunityPost {
+  id: string;
+  communityId: string;
+  userId: string;
+  userName: string;
+  userPhoto?: string | null;
+  content: string;
+  imageUrl?: string | null;
+  likes: string[];
+  comments: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FullPost extends Post {
+  authorDisplayName: string;
+  authorPhotoURL?: string | null;
 }
 
 export interface TherapySession {
@@ -282,7 +300,7 @@ export interface ProfileForm {
 export interface AppState {
   user: User | null;
   posts: Post[];
-  communities: CommunityGroup[];
+  communities: Community[];
   notifications: Notification[];
   activeTab: string;
   isLoading: boolean;
@@ -326,4 +344,8 @@ export interface UseAuthReturn {
   register: (data: RegisterForm) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: ProfileForm) => Promise<void>;
+}
+
+export interface SuggestedCommunitiesResponse {
+  communities: Community[];
 }

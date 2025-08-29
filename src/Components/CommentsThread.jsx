@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Heart, Send, Trash2, MoreVertical, EyeOff, Reply, Edit3, Flag, User, AlertTriangle } from 'lucide-react';
 import { useComments } from '../hooks/useComments';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const CommentsThread = ({ postId }) => {
   const [newComment, setNewComment] = useState('');
@@ -14,6 +15,7 @@ const CommentsThread = ({ postId }) => {
   const [reportReason, setReportReason] = useState('');
   const commentInputRef = useRef(null);
   const { user } = useAuth();
+  const { showAppToast } = useToast();
 
   const {
     comments,
@@ -67,7 +69,7 @@ const CommentsThread = ({ postId }) => {
 
   const handleReportComment = async (commentId) => {
     if (!reportReason.trim()) {
-      alert('Por favor, informe o motivo do report.');
+      showAppToast('Por favor, informe o motivo do report.', 'error');
       return;
     }
 
