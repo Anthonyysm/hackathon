@@ -53,10 +53,10 @@ const UserOptions = () => {
           return (
             <button
               key={option.id}
-              className="w-full bg-white/5 border border-gray-200/20 rounded-xl p-4 hover:bg-white/10 hover:border-gray-300/20 hover:scale-105 transition-all duration-200 group"
+              className="w-full bg-white/5 border border-gray-200/20 rounded-xl p-4 hover:bg-white/10 hover:border-gray-300/20 transition-all duration-200 group"
             >
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                   <IconComponent className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-left flex-1">

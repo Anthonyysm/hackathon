@@ -14,7 +14,7 @@ const Card = React.forwardRef(({
   const variants = {
     default: 'bg-white/5 border border-white/10',
     glass: 'bg-white/10 backdrop-blur-md border border-white/20',
-    elevated: 'bg-white/5 border border-white/10 shadow-2xl',
+    elevated: 'bg-white/5 border border-white/10 shadow-md',
     bordered: 'bg-transparent border-2 border-white/20'
   };
   
@@ -25,7 +25,7 @@ const Card = React.forwardRef(({
     lg: 'p-8'
   };
   
-  const hoverClasses = hover ? 'hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]' : '';
+  const hoverClasses = hover ? 'hover:bg-white/10 hover:border-white/20' : '';
   
   return (
     <div

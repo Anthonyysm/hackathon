@@ -120,7 +120,7 @@ const Navbar = React.memo(({ scrolled, scrollToSection }) => {
         className={`
           bg-white/5 border border-white/10 rounded-2xl 
           shadow-lg shadow-black/20 transition-all duration-500 backdrop-blur-md
-          ${scrolled ? 'bg-white/8 border-white/15 shadow-2xl shadow-black/30' : 'bg-white/5 border-white/20'}
+          ${scrolled ? 'bg-white/5 border-white/15 shadow-md shadow-black/20' : 'bg-white/5 border-white/20'}
         `}
         role="navigation"
         aria-label="Navegação principal"
@@ -163,7 +163,7 @@ const Navbar = React.memo(({ scrolled, scrollToSection }) => {
             ))}
             <button 
               onClick={handleContactClick}
-              className="group relative bg-white text-black px-6 py-2.5 rounded-lg transition-all duration-300 text-sm font-light tracking-wide transform hover:bg-white/90 hover:scale-105 backdrop-blur-md shadow-lg hover:shadow-xl"
+              className="group relative bg-white text-black px-6 py-2.5 rounded-lg transition-all duration-300 text-sm font-light tracking-wide transform hover:bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl"
               aria-label="Ir para seção de contato"
             >
               <span className="relative z-10">Começar Agora</span>
@@ -172,7 +172,7 @@ const Navbar = React.memo(({ scrolled, scrollToSection }) => {
 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden text-white hover:bg-white/10 p-2.5 rounded-lg transition-all duration-300 backdrop-blur-md hover:scale-105"
+            className="lg:hidden text-white hover:bg-white/10 p-2.5 rounded-lg transition-all duration-300 backdrop-blur-md"
             onClick={toggleMenu}
             aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
             aria-expanded={isMenuOpen}
@@ -187,7 +187,7 @@ const Navbar = React.memo(({ scrolled, scrollToSection }) => {
         {isMenuOpen && (
           <div 
             id="mobile-menu"
-            className="lg:hidden border-t border-white/10 px-5 py-5 bg-white/5 backdrop-blur-md animate-in slide-in-from-top-2 duration-300"
+            className="lg:hidden border-t border-white/10 px-5 py-5 bg-white/5 backdrop-blur-md animate-in slide-in-from-top-2 fade-in-0 duration-300"
             role="menu"
             aria-label="Menu de navegação móvel"
           >
@@ -207,7 +207,7 @@ const Navbar = React.memo(({ scrolled, scrollToSection }) => {
               ))}
               <button 
                 onClick={handleContactClick}
-                className="bg-white text-black px-6 py-3 rounded-lg hover:bg-white/90 transition-all duration-300 w-full text-sm font-light tracking-wide mt-3 backdrop-blur-md hover:scale-105"
+                className="bg-white text-black px-6 py-3 rounded-lg hover:bg-white/90 transition-all duration-300 w-full text-sm font-light tracking-wide mt-3 backdrop-blur-md"
                 role="menuitem"
                 aria-label="Ir para seção de contato"
               >

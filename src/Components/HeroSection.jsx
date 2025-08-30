@@ -35,7 +35,7 @@ const HeroSection = React.memo(({ scrollToSection }) => {
       aria-labelledby="hero-title"
       role="banner"
     >
-      <div className="container-responsive relative">
+      <div className="container-responsive relative mt-44">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge Minimalista com animação melhorada */}
           <div className={`inline-flex items-center space-x-3 backdrop-blur-md bg-white/5 border border-white/10 rounded-full px-5 py-2.5 mb-6 md:mb-8 transition-all duration-1000 ${

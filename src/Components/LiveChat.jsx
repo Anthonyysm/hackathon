@@ -378,10 +378,10 @@ const LiveChat = () => {
   const renderTabButton = (tabKey, label, Icon) => (
     <button
       onClick={() => setActiveTab(tabKey)}
-      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+      className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-200 ${
         activeTab === tabKey
-          ? 'bg-white/20 text-white'
-          : 'bg-white/10 text-white/70 hover:text-white'
+          ? 'bg-white/10 text-white/80'
+          : 'bg-transparent text-white/70 hover:text-white hover:bg-white/5'
       }`}
     >
       <Icon className="w-4 h-4" />
@@ -443,7 +443,7 @@ const LiveChat = () => {
                 console.log('✅ Sala configurada e URL atualizada');
               }}
               disabled={!roomCode.trim()}
-              className="px-3 py-2 bg-white text-black rounded-lg disabled:opacity-50"
+              className="px-3 py-2 bg-white/10 text-white rounded-xl disabled:opacity-50 hover:bg-white/20"
             >
               Entrar
             </button>
@@ -484,7 +484,7 @@ const LiveChat = () => {
                     setPartnerId('');
                     navigate('/home/chat', { replace: true });
                   }}
-                  className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5 text-white" />
                 </button>
@@ -514,21 +514,21 @@ const LiveChat = () => {
                 </div>
                 <button
                   onClick={addTestMessage}
-                  className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded hover:bg-blue-500/30 transition-colors"
+                  className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-xl hover:bg-white/20 transition-colors"
                   title="Adicionar mensagem de teste"
                 >
                   🧪 Teste
                 </button>
                 <button
                   onClick={clearOtherUsersMessages}
-                  className="text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded hover:bg-orange-500/30 transition-colors"
+                  className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-xl hover:bg-white/20 transition-colors"
                   title="Limpar mensagens de outros usuários"
                 >
                   🧹 Outros
                 </button>
                 <button
                   onClick={clearAllMessages}
-                  className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded hover:bg-red-500/30 transition-colors"
+                  className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-xl hover:bg-white/20 transition-colors"
                   title="Limpar todas as mensagens"
                 >
                   🗑️ Tudo
@@ -627,7 +627,7 @@ const LiveChat = () => {
           {/* Message Input */}
           <div className="p-4 border-t border-white/10">
             <div className="flex items-center space-x-2">
-              <button className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+              <button className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
                 <Paperclip className="w-5 h-5" />
               </button>
               <Input
@@ -644,7 +644,7 @@ const LiveChat = () => {
               <button 
                 onClick={handleSendMessage}
                 disabled={!message.trim() || connectionStatus !== 'connected'}
-                className="p-2 bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 bg-white text-black rounded-xl hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-5 h-5" />
               </button>

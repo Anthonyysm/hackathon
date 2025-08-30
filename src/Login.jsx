@@ -23,6 +23,8 @@ const Login = () => {
     });
   };
 
+  const { showAppToast } = useToast();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
@@ -34,7 +36,6 @@ const Login = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
-      console.log('Login realizado com sucesso:', user.email);
       showAppToast('Login realizado com sucesso!', 'success');
       
       // Verificar se é psicólogo e redirecionar adequadamente
@@ -44,7 +45,6 @@ const Login = () => {
         navigate('/home');
       }
     } catch (error) {
-      console.error('Erro no login:', error);
       let errorMessage = 'Erro ao fazer login.';
       
       switch (error.code) {
@@ -75,14 +75,12 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      console.log('Login com Google realizado com sucesso:', user.email);
       showAppToast('Login com Google realizado com sucesso!', 'success');
       
       // Para login com Google, redirecionar para home (usuário comum)
       // Psicólogos devem usar login com email/senha
       navigate('/home');
     } catch (error) {
-      console.error('Erro no login com Google:', error);
       let errorMessage = 'Erro ao fazer login com Google.';
       
       switch (error.code) {
@@ -119,7 +117,6 @@ const Login = () => {
       await sendPasswordResetEmail(auth, formData.email);
       showAppToast('Email de redefinição enviado! Verifique sua caixa de entrada.', 'success');
     } catch (error) {
-      console.error('Erro ao enviar email de redefinição:', error);
       let errorMessage = 'Erro ao enviar email de redefinição.';
       
       switch (error.code) {

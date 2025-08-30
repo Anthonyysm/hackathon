@@ -266,8 +266,8 @@ const PostCreation = ({ onPostCreated, onCancel, isModal = false }) => {
             
             <button
               type="submit"
-              disabled={isSubmitting || !content.trim()} // Changed from isUploadingImage to isSubmitting
-              className="px-6 py-2 bg-white text-black rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] disabled:bg-white/30 disabled:scale-100 disabled:cursor-not-allowed flex items-center space-x-2"
+              disabled={isSubmitting || !content.trim()}
+              className="px-6 py-2 bg-white text-black rounded-lg font-medium transition-all duration-200 transform disabled:bg-white/30 disabled:scale-100 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {isSubmitting ? (
                 <>

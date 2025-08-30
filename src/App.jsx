@@ -125,19 +125,10 @@ function App() {
       const offsetPosition = elementPosition - headerHeight;
       
       // Scroll suave com easing personalizado
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-        inline: 'nearest'
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
       });
-      
-      // Ajuste fino da posição após o scroll
-      setTimeout(() => {
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }, 100);
     }
   }, []);
 
@@ -227,11 +218,11 @@ function App() {
             raysOrigin="top-center"
             raysColor="#ffffff"
             raysSpeed={0.8}
-            lightSpread={1.2}
-            rayLength={1.8}
+            lightSpread={1.5}
+            rayLength={2.0}
             followMouse={true}
             mouseInfluence={0.08}
-            noiseAmount={0.02}
+            noiseAmount={0.05}
             distortion={0.008}
             className="w-full h-full"
           />
@@ -244,8 +235,8 @@ function App() {
       </section>
 
       {/* Services Section */}
-      <section id="services" ref={servicesRef} className="relative z-10 py-16 md:py-24 min-h-screen flex items-center">
-        <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+      <section id="services" ref={servicesRef} className="relative z-10 py-24 md:py-24 min-h-screen flex items-center">
+        <div className="container mx-auto mb-24 px-4 md:px-6 max-w-6xl">
           <div className="text-center mb-12 md:mb-16 relative">
             {/* Decorative elements */}
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-8">
@@ -294,7 +285,7 @@ function App() {
 
       {/* Community Section */}
       <section id="projects" ref={communityRef} className="relative z-10 py-16 md:py-24 min-h-screen flex items-center">
-        <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+        <div className="container mx-auto mb-24 px-4 md:px-6 max-w-6xl">
           <div className="text-center mb-12 md:mb-16 relative">
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-8">
               <div className="w-12 h-px bg-white/20"></div>
@@ -368,8 +359,8 @@ function App() {
 
       {/* Testimonials Section */}
       <section id="testimonials" ref={testimonialsRef} className="relative z-10 py-16 md:py-24 min-h-screen flex items-center">
-        <div className="container mx-auto px-4 md:px-6 max-w-4xl">
-          <div className="text-center mb-12 md:mb-16 relative">
+        <div className="container mb-24 mx-auto px-4 md:px-6 max-w-4xl">
+          <div className="text-center mb-11 md:mb-16 relative">
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-6">
               <div className="w-8 h-8 border border-white/10 rounded-full flex items-center justify-center">
                 <div className="w-2 h-2 bg-white/20 rounded-full animate-pulse"></div>
